@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration API Key DynamoPro</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1976d2;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1565c0;
+        }
+        .success-message {
+            color: green;
+            margin-top: 10px;
+            display: none;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        .info-box {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            border-left: 4px solid #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Configuration de l'API Key pour DynamoPro</h1>
+        
+        <div class="info-box">
+            <p><strong>Important:</strong> Cette page vous permet de configurer temporairement votre clé API OpenAI pour tester l'application. 
+            Pour une configuration permanente, vous devez ajouter cette clé dans les variables d'environnement de Netlify.</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="apiKey">Votre clé API OpenAI:</label>
+            <input type="text" id="apiKey" placeholder="sk-...">
+        </div>
+        
+        <button id="saveButton">Sauvegarder la clé API</button>
+        
+        <p id="successMessage" class="success-message">La clé API a été sauvegardée avec succès dans le localStorage. Vous pouvez maintenant utiliser l'assistant vocal.</p>
+        <p id="errorMessage" class="error-message">Une erreur s'est produite lors de la sauvegarde de la clé API.</p>
+        
+        <div class="info-box" style="margin-top: 30px;">
+            <h3>Instructions pour configurer l'API Key dans Netlify:</h3>
+            <ol>
+                <li>Connectez-vous à votre compte Netlify et accédez au tableau de bord de votre site</li>
+                <li>Cliquez sur "Site settings" dans le menu</li>
+                <li>Sélectionnez "Environment variables" dans la barre latérale</li>
+                <li>Cliquez sur "Add a variable"</li>
+                <li>Entrez <strong>OPENAI_API_KEY</strong> comme nom de la variable</li>
+                <li>Collez votre clé API OpenAI comme valeur</li>
+                <li>Cliquez sur "Save"</li>
+                <li>Redéployez votre site pour que les changements prennent effet</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('saveButton').addEventListener('click', function() {
+            try {
+                const apiKey = document.getElementById('apiKey').value.trim();
+                
+                if (!apiKey) {
+                    throw new Error('La clé API ne peut pas être vide');
+                }
+                
+                // Sauvegarder la clé API dans le localStorage
+                localStorage.setItem('OPENAI_API_KEY', apiKey);
+                
+                // Afficher le message de succès
+                document.getElementById('successMessage').style.display = 'block';
+                document.getElementById('errorMessage').style.display = 'none';
+                
+                console.log('Clé API sauvegardée avec succès');
+            } catch (error) {
+                // Afficher le message d'erreur
+                document.getElementById('errorMessage').textContent = 'Erreur: ' + error.message;
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('successMessage').style.display = 'none';
+                
+                console.error('Erreur lors de la sauvegarde de la clé API:', error);
+            }
+        });
+    </script>
+</body>
+</html>
