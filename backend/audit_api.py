@@ -6,174 +6,83 @@ Cette API expose les routes nécessaires pour gérer les audits et générer des
 
 import os
 import json
-import uuid
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import List, Optional, Dict, Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session
 
-# Création de l'application FastAPI
+from app.db.session import get_db
+from app.models.audit_model import Audit as AuditModel
+
 app = FastAPI(
     title="DynamoPro Audit API",
     description="API pour gérer les audits et générer des recommandations",
     version="1.0.0"
 )
 
-# Configuration CORS pour permettre les requêtes depuis le frontend
+origins = [
+    "https://dynamopro-app.windsurf.build",
+    # Vous pouvez ajouter d'autres origines ici si nécessaire, par exemple:
+    # "http://localhost:3000", # Si votre frontend local tourne sur le port 3000
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Chemin vers le fichier de stockage des audits
-AUDITS_FILE = os.path.join(os.path.dirname(__file__), "audits.json")
+class AuditBase(BaseModel):
+    event_name: str
+    details: Optional[Dict[str, Any]] = None
 
-# S'assurer que le fichier existe
-if not os.path.exists(AUDITS_FILE):
-    with open(AUDITS_FILE, 'w', encoding='utf-8') as f:
-        f.write('{}')
+class AuditCreate(AuditBase):
+    pass
 
-# Modèles de données
-class AuditRequest(BaseModel):
-    user_id: str
-    audit_data: Dict[str, Any]
+class AuditSchema(AuditBase):
+    id: int
+    timestamp: datetime
 
-class AuditResponse(BaseModel):
-    id: str
-    userId: str
-    createdAt: str
-    updatedAt: str
-    auditData: Dict[str, Any]
+    model_config = ConfigDict(from_attributes=True)
 
-class AuditSummary(BaseModel):
-    id: str
-    userId: str
-    createdAt: str
+@app.post("/api/v1/audits", response_model=AuditSchema, status_code=201)
+def create_audit_entry(audit_request: AuditCreate, db: Session = Depends(get_db)):
+    """Crée une nouvelle entrée d'audit dans la base de données."""
+    db_audit = AuditModel(
+        event_name=audit_request.event_name,
+        details=audit_request.details
+    )
+    db.add(db_audit)
+    db.commit()
+    db.refresh(db_audit)
+    return db_audit
 
-# Fonctions utilitaires
-def load_audits():
-    """Charge les audits depuis le fichier"""
-    try:
-        if os.path.exists(AUDITS_FILE):
-            with open(AUDITS_FILE, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-                if content:
-                    return json.loads(content)
-                else:
-                    return {}
-        else:
-            return {}
-    except Exception as e:
-        print(f"Erreur lors du chargement des audits: {e}")
-        return {}
-
-def save_audits(audits):
-    """Sauvegarde les audits dans le fichier"""
-    try:
-        with open(AUDITS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(audits, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Erreur lors de la sauvegarde des audits: {e}")
-
-# Routes API
-@app.post("/api/v1/audits", response_model=AuditResponse)
-async def create_audit(request: AuditRequest):
-    """Crée un nouvel audit vocal"""
-    # Créer l'audit
-    audit_id = str(uuid.uuid4())
-    now = datetime.now().isoformat()
-    
-    audit = {
-        "id": audit_id,
-        "userId": request.user_id,
-        "createdAt": now,
-        "updatedAt": now,
-        "auditData": request.audit_data
-    }
-    
-    # Charger les audits existants
-    audits = load_audits()
-    
-    # Ajouter l'audit à la collection
-    if request.user_id not in audits:
-        audits[request.user_id] = []
-    
-    audits[request.user_id].append(audit)
-    save_audits(audits)
-    
-    return audit
-
-@app.get("/api/v1/audits", response_model=List[AuditSummary])
-async def get_user_audits(user_id: str):
-    """Récupère tous les audits d'un utilisateur"""
-    # Charger les audits
-    audits = load_audits()
-    
-    # Récupérer les audits de l'utilisateur
-    user_audits = audits.get(user_id, [])
-    
-    return user_audits
+@app.get("/api/v1/audits", response_model=List[AuditSchema])
+def get_all_audits(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
+    """Récupère une liste paginée de tous les audits."""
+    audits = db.query(AuditModel).offset(skip).limit(limit).all()
+    return audits
 
 @app.post("/api/v1/detailed-recommendations")
-async def generate_detailed_recommendations(audit_data: Dict[str, Any]):
+async def generate_detailed_recommendations(audit_data: dict):
     """Génère des recommandations détaillées basées sur les données d'audit"""
-    # Générer des recommandations de base (pour les tests)
+    # Placeholder logic
     recommendations = {
         "energy": [
-            {
-                "title": "Installation de panneaux solaires",
-                "description": "Les panneaux solaires peuvent réduire votre facture d'électricité jusqu'à 70%.",
-                "cost": "8000-12000",
-                "savings": "800-1200",
-                "roi": "10-15",
-                "subsidies": ["Prime Habitation Wallonie", "Réduction fiscale fédérale"]
-            },
-            {
-                "title": "Pompe à chaleur",
-                "description": "Une pompe à chaleur est 3 à 4 fois plus efficace qu'un système de chauffage traditionnel.",
-                "cost": "10000-15000",
-                "savings": "900-1500",
-                "roi": "7-10",
-                "subsidies": ["Prime Habitation Wallonie", "Prime Énergie"]
-            }
+            {"recommendation": "Vérifiez l'isolation de votre grenier.", "priority": "Haute"},
+            {"recommendation": "Passez à des ampoules LED.", "priority": "Moyenne"}
         ],
         "water": [
-            {
-                "title": "Système de récupération d'eau de pluie",
-                "description": "Un système de récupération d'eau de pluie peut réduire votre consommation d'eau potable de 50%.",
-                "cost": "3000-5000",
-                "savings": "200-400",
-                "roi": "12-15",
-                "subsidies": ["Prime communale pour la récupération d'eau de pluie"]
-            }
-        ],
-        "waste": [
-            {
-                "title": "Compostage domestique",
-                "description": "Le compostage peut réduire vos déchets ménagers de 30%.",
-                "cost": "50-200",
-                "savings": "20-50",
-                "roi": "2-4",
-                "subsidies": ["Prime communale pour le compostage"]
-            }
-        ],
-        "biodiversity": [
-            {
-                "title": "Toiture végétalisée",
-                "description": "Une toiture végétalisée améliore l'isolation et favorise la biodiversité.",
-                "cost": "5000-10000",
-                "savings": "300-600",
-                "roi": "15-20",
-                "subsidies": ["Prime régionale pour les toitures vertes"]
-            }
+            {"recommendation": "Réparez les fuites de robinet.", "priority": "Haute"}
         ]
     }
-    
+    # Ici, vous pourriez avoir une logique plus complexe pour générer des recommandations
+    # basées sur `audit_data`
     return recommendations
 
 # Point d'entrée pour l'exécution directe

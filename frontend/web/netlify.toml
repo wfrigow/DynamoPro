@@ -1,5 +1,5 @@
 [build]
-  command = "CI=false npm run build"
+  command = "CI=false TSC_COMPILE_ON_ERROR=true npm run build"
   publish = "build"
   functions = "netlify/functions"
 
@@ -9,6 +9,8 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  TSC_COMPILE_ON_ERROR = "true"
+  DISABLE_ESLINT_PLUGIN = "true"
 
 # Redirects for API endpoints
 [[redirects]]

@@ -54,26 +54,39 @@ export const saveAuditData = (auditData: SimplifiedAudit): boolean => {
     // 1. Save to localStorage
     localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(auditData));
     
-    // 2. Save to Redux store
-    store.dispatch(updateProfile({
-      auditData: {
-        lastUpdated: auditData.timestamp,
-        // Profile data
-        userType: auditData.data.userType,
-        region: auditData.data.region,
-        // Consumption data
-        electricityUsage: auditData.data.electricityUsage,
-        gasUsage: auditData.data.gasUsage,
-        gasConsumption: auditData.data.gasConsumption,
-        // Property data
-        propertyType: auditData.data.propertyType,
-        area: auditData.data.area,
-        constructionYear: auditData.data.constructionYear,
-        insulationStatus: auditData.data.insulationStatus
-      }
-    }));
+    // 2. Check if user is authenticated before saving to Redux store
+    const state = store.getState();
+    const isAuthenticated = state.auth?.isAuthenticated || false;
+    const userId = state.auth?.user?.id;
     
-    console.log('Audit data successfully saved to localStorage and Redux store');
+    console.log('UserId récupéré:', userId);
+    console.log('Token disponible:', isAuthenticated);
+    
+    if (isAuthenticated && userId) {
+      // User is authenticated, save to Redux store
+      store.dispatch(updateProfile({
+        auditData: {
+          lastUpdated: auditData.timestamp,
+          // Profile data
+          userType: auditData.data.userType,
+          region: auditData.data.region,
+          // Consumption data
+          electricityUsage: auditData.data.electricityUsage,
+          gasUsage: auditData.data.gasUsage,
+          gasConsumption: auditData.data.gasConsumption,
+          // Property data
+          propertyType: auditData.data.propertyType,
+          area: auditData.data.area,
+          constructionYear: auditData.data.constructionYear,
+          insulationStatus: auditData.data.insulationStatus
+        }
+      }));
+      console.log('Audit data successfully saved to localStorage and Redux store');
+    } else {
+      // User is not authenticated, only save to localStorage
+      console.log('Audit data saved to localStorage only (user not authenticated)');
+    }
+    
     return true;
   } catch (error) {
     console.error('Error saving audit data:', error);

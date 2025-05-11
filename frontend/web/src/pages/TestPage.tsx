@@ -1,37 +1,52 @@
-import React from 'react';
-import { Box, Typography, Paper, Button, Container } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Container, Typography, Box, Paper, Button, Grid } from '@mui/material';
+import VoiceAuditAssistant from '../components/audit/VoiceAuditAssistant';
+import UnifiedVoiceAssistant from '../components/audit/UnifiedVoiceAssistant';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
 
 const TestPage: React.FC = () => {
-  const navigate = useNavigate();
-  
+  const userId = useSelector((state: RootState) => state.auth.user?.id) || 'test-user';
+  const [useUnifiedAssistant, setUseUnifiedAssistant] = useState<boolean>(true);
+
+  const handleAuditComplete = (auditData: Record<string, any>) => {
+    console.log('Audit complété avec succès:', auditData);
+  };
+
   return (
-    <Container maxWidth="md">
-      <Box sx={{ p: 3, mt: 4 }}>
-        <Paper sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h4" gutterBottom>
-            DynamoPro Test Page
-          </Typography>
-          <Typography variant="body1" paragraph>
-            If you can see this page, the React application is rendering correctly.
-            This is a public test page that doesn't require authentication.
-          </Typography>
-          <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+    <Container maxWidth="lg">
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Page de Test - Assistant Vocal
+        </Typography>
+        
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item>
             <Button 
-              variant="contained" 
+              variant={useUnifiedAssistant ? "contained" : "outlined"}
+              onClick={() => setUseUnifiedAssistant(true)}
               color="primary"
-              onClick={() => navigate('/login')}
             >
-              Go to Login
+              Assistant Unifié (1 étape)
             </Button>
+          </Grid>
+          <Grid item>
             <Button 
-              variant="outlined" 
+              variant={!useUnifiedAssistant ? "contained" : "outlined"}
+              onClick={() => setUseUnifiedAssistant(false)}
               color="primary"
-              onClick={() => navigate('/')}
             >
-              Go to Dashboard
+              Assistant Original (3 étapes)
             </Button>
-          </Box>
+          </Grid>
+        </Grid>
+        
+        <Paper elevation={3} sx={{ p: 3, height: '70vh' }}>
+          {useUnifiedAssistant ? (
+            <UnifiedVoiceAssistant userId={userId} onAuditComplete={handleAuditComplete} />
+          ) : (
+            <VoiceAuditAssistant userId={userId} onAuditComplete={handleAuditComplete} />
+          )}
         </Paper>
       </Box>
     </Container>

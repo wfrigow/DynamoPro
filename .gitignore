@@ -39,3 +39,9 @@ build/
 *.egg
 venv/
 env/
+
+# Project Specific / Backend virtual environment and database files
+backend/.venv/
+*.db
+*.sqlite
+*.sqlite3

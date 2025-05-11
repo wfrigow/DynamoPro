@@ -1,5 +1,53 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '..';
+
+// Detailed Audit Data structures to match backend models
+interface BackendProfileData {
+  userType: string;
+  region: string;
+  additionalInfo?: Record<string, any>;
+}
+
+interface BackendConsumptionData {
+  electricityUsage: number;
+  gasUsage: boolean;
+  gasConsumption: number;
+  additionalInfo?: Record<string, any>;
+}
+
+interface BackendPropertyData {
+  propertyType: string;
+  area: number;
+  constructionYear: number;
+  insulationStatus: string;
+  additionalInfo?: Record<string, any>;
+}
+
+export interface UserAuditData {
+  profile: BackendProfileData;
+  consumption: BackendConsumptionData;
+  property: BackendPropertyData;
+  // lastUpdated can be added here if it's part of the AuditData payload from backend
+  // or managed at a higher level in AuditResponse
+}
+
+// Interface for the AuditSummary from the backend (for the list endpoint)
+interface AuditSummary {
+  id: string;
+  createdAt: string; // Assuming ISO string format for dates
+  userType: string;
+  region: string;
+  propertyType: string;
+}
+
+// Interface for the full AuditResponse from the backend (for the single audit endpoint)
+interface FullAuditResponse {
+  id: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  auditData: UserAuditData; // This is what we need for the store
+}
 
 interface ProfileState {
   loading: boolean;
@@ -18,22 +66,8 @@ interface ProfileState {
     companySize?: number;
     companyVat?: string;
     subscriptionType: 'free' | 'premium';
-    // Audit data fields
-    auditData?: {
-      lastUpdated: string;
-      // Profile data
-      userType?: string;
-      region?: string;
-      // Consumption data
-      electricityUsage?: number;
-      gasUsage?: boolean;
-      gasConsumption?: number;
-      // Property data
-      propertyType?: string;
-      area?: number;
-      constructionYear?: number;
-      insulationStatus?: string;
-    };
+    auditData?: UserAuditData; // Updated to use the detailed UserAuditData
+    lastAuditUpdateTimestamp?: string; // To track when auditData was last fetched/updated from backend
   } | null;
 }
 
@@ -51,27 +85,120 @@ const initialState: ProfileState = {
     phone: '+32 123 456 789',
     language: 'fr',
     subscriptionType: 'premium',
+    // auditData will be initially undefined, to be populated from backend
   },
 };
+
+// Async thunk to fetch user audits
+export const fetchUserAudits = createAsyncThunk<
+  UserAuditData, // Return type on success
+  string,        // Argument type (userId)
+  { rejectValue: string; state: RootState } // ThunkApi config
+>('profile/fetchUserAudits', async (userId, { rejectWithValue }) => {
+  try {
+    // 1. Fetch audit summaries for the user
+    const summariesResponse = await fetch(`/api/v1/audits?user_id=${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      },
+    });
+    if (!summariesResponse.ok) {
+      const errorText = await summariesResponse.text();
+      return rejectWithValue(`Failed to fetch audit summaries: ${summariesResponse.status} - ${errorText}`);
+    }
+    const summaries: AuditSummary[] = await summariesResponse.json();
+
+    if (summaries.length === 0) {
+      // No audits found for the user, this is not an error, but no data to set
+      // We could potentially dispatch an action to clear existing audit data or set a specific state
+      return rejectWithValue('No audits found for user.'); 
+    }
+
+    // 2. Sort summaries to find the most recent one (by createdAt)
+    summaries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const latestAuditSummary = summaries[0];
+
+    // 3. Fetch the full details of the most recent audit
+    const fullAuditResponse = await fetch(`/api/v1/audits/${latestAuditSummary.id}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      },
+    });
+    if (!fullAuditResponse.ok) {
+      const errorText = await fullAuditResponse.text();
+      return rejectWithValue(`Failed to fetch full audit details: ${fullAuditResponse.status} - ${errorText}`);
+    }
+    const fullAudit: FullAuditResponse = await fullAuditResponse.json();
+    
+    return fullAudit.auditData; // This will be the payload of the fulfilled action
+
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'An unknown error occurred while fetching audits');
+  }
+});
 
 const profileSlice = createSlice({
   name: 'profile',
   initialState,
   reducers: {
+    setProfileLoading(state) {
+      state.loading = true;
+      state.error = null;
+    },
     updateProfile(state, action: PayloadAction<Partial<ProfileState['profile']>>) {
       if (state.profile) {
+        // Ensure auditData is handled carefully if it's part of the partial update
+        const { auditData, ...otherProfileUpdates } = action.payload as any; // Cast to any to handle auditData separately
         state.profile = {
           ...state.profile,
-          ...action.payload,
+          ...otherProfileUpdates,
         };
+        // If auditData is explicitly in payload, it might need special merging or replacement
+        // For now, setAuditData is preferred for full auditData updates from backend
+        if (auditData) {
+          // This might overwrite or merge, depending on desired behavior for partial audit updates
+          // state.profile.auditData = { ...state.profile.auditData, ...auditData }; 
+        }
       }
+      state.loading = false;
     },
+    setAuditData(state, action: PayloadAction<UserAuditData>) {
+      if (state.profile) {
+        state.profile.auditData = action.payload;
+        state.profile.lastAuditUpdateTimestamp = new Date().toISOString();
+      }
+      state.loading = false;
+      state.error = null;
+    },
+    setProfileError(state, action: PayloadAction<string>) {
+      state.loading = false;
+      state.error = action.payload;
+    }
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUserAudits.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserAudits.fulfilled, (state, action: PayloadAction<UserAuditData>) => {
+        if (state.profile) {
+          state.profile.auditData = action.payload;
+          state.profile.lastAuditUpdateTimestamp = new Date().toISOString();
+        }
+        state.loading = false;
+      })
+      .addCase(fetchUserAudits.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload ? action.payload : 'Failed to fetch audits';
+      });
+  }
 });
 
-export const { updateProfile } = profileSlice.actions;
+export const { updateProfile, setAuditData, setProfileLoading, setProfileError } = profileSlice.actions;
 
 export const selectProfile = (state: RootState) => state.profile.profile;
+export const selectAuditData = (state: RootState) => state.profile.profile?.auditData;
 export const selectProfileLoading = (state: RootState) => state.profile.loading;
 export const selectProfileError = (state: RootState) => state.profile.error;
 

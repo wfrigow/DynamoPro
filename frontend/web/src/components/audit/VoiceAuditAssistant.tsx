@@ -31,10 +31,13 @@ import {
   Business
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import { saveAuditData as saveAuditDataToStorage } from '../../utils/auditStorage';
+import { useDispatch } from 'react-redux';
+import { setAuditData as setAuditDataAction, UserAuditData as FrontendUserAuditData } from '../../store/slices/profileSlice';
 
 // Service d'intelligence artificielle utilisant l'API OpenAI réelle via le proxy
 const OpenAIService = {
-  processMessage: async (userMessage: string, agentType: string, conversationHistory: any[] = []) => {
+  processMessage: async (userMessage: string, conversationHistory: any[] = []) => {
     // Appel à l'API OpenAI via la fonction callOpenAI mise à jour
     return await callOpenAI(userMessage, conversationHistory);
   }
@@ -50,105 +53,107 @@ function generateUUID(): string {
 }
 
 // Fonction pour générer des données extraites de secours basées sur l'entrée utilisateur
-function generateFallbackExtractedData(userInput: string, agentType: string): ExtractedData {
+function generateFallbackExtractedData(userInput: string): ExtractedData {
   const input = userInput.toLowerCase();
   const extractedData: ExtractedData = {};
   
-  // Extraire des informations de base selon le type d'agent
-  if (agentType === 'profile') {
-    // Essayer de détecter le type d'utilisateur
-    if (input.includes('particulier') || input.includes('individu') || input.includes('personnel')) {
-      extractedData.userType = 'particulier';
-    } else if (input.includes('indépendant') || input.includes('freelance')) {
-      extractedData.userType = 'indépendant';
-    } else if (input.includes('entreprise') || input.includes('société') || input.includes('business')) {
-      extractedData.userType = 'entreprise';
-    }
+  // Essayer de détecter le type d'utilisateur
+  if (input.includes('particulier') || input.includes('individu') || input.includes('personnel')) {
+    extractedData.userType = 'particulier';
+  } else if (input.includes('indépendant') || input.includes('freelance')) {
+    extractedData.userType = 'indépendant';
+  } else if (input.includes('entreprise') || input.includes('société') || input.includes('business')) {
+    extractedData.userType = 'entreprise';
+  }
+  
+  // Essayer de détecter la région
+  if (input.includes('wallonie') || input.includes('liège') || input.includes('namur')) {
+    extractedData.region = 'wallonie';
+  } else if (input.includes('bruxelles') || input.includes('brussel')) {
+    extractedData.region = 'bruxelles';
+  } else if (input.includes('flandre') || input.includes('anvers') || input.includes('gand')) {
+    extractedData.region = 'flandre';
+  }
+  
+  // Essayer de détecter la consommation électrique
+  const electricityMatch = input.match(/(\d+)\s*kwh/i);
+  if (electricityMatch) {
+    extractedData.electricityUsage = parseInt(electricityMatch[1]);
+  }
+  
+  // Essayer de détecter l'utilisation de gaz
+  if (input.includes('gaz')) {
+    extractedData.gasUsage = true;
     
-    // Essayer de détecter la région
-    if (input.includes('wallonie') || input.includes('liège') || input.includes('namur')) {
-      extractedData.region = 'wallonie';
-    } else if (input.includes('bruxelles') || input.includes('brussel')) {
-      extractedData.region = 'bruxelles';
-    } else if (input.includes('flandre') || input.includes('anvers') || input.includes('gand')) {
-      extractedData.region = 'flandre';
+    // Essayer de détecter la consommation de gaz
+    const gasMatch = input.match(/(\d+)\s*m3/i);
+    if (gasMatch) {
+      extractedData.gasConsumption = parseInt(gasMatch[1]);
     }
-  } else if (agentType === 'consumption') {
-    // Essayer de détecter la consommation électrique
-    const electricityMatch = input.match(/(\d+)\s*kwh/i);
-    if (electricityMatch) {
-      extractedData.electricityUsage = parseInt(electricityMatch[1]);
-    }
-    
-    // Essayer de détecter l'utilisation de gaz
-    if (input.includes('gaz')) {
-      extractedData.gasUsage = true;
-      
-      // Essayer de détecter la consommation de gaz
-      const gasMatch = input.match(/(\d+)\s*m3/i);
-      if (gasMatch) {
-        extractedData.gasConsumption = parseInt(gasMatch[1]);
-      }
-    } else if (input.includes('pas de gaz') || input.includes('sans gaz')) {
-      extractedData.gasUsage = false;
-    }
-  } else if (agentType === 'property') {
-    // Essayer de détecter le type de propriété
-    if (input.includes('maison')) {
-      extractedData.propertyType = 'maison';
-    } else if (input.includes('appartement')) {
-      extractedData.propertyType = 'appartement';
-    } else if (input.includes('bureau') || input.includes('commercial')) {
-      extractedData.propertyType = 'commercial';
-    }
-    
-    // Essayer de détecter la superficie
-    const areaMatch = input.match(/(\d+)\s*m2/i);
-    if (areaMatch) {
-      extractedData.area = parseInt(areaMatch[1]);
-    }
-    
-    // Essayer de détecter l'année de construction
-    const yearMatch = input.match(/(19|20)(\d{2})/);
-    if (yearMatch) {
-      extractedData.constructionYear = parseInt(yearMatch[0]);
-    }
-    
-    // Essayer de détecter l'état de l'isolation
-    if (input.includes('bonne isolation') || input.includes('bien isolé')) {
-      extractedData.insulationStatus = 'bon';
-    } else if (input.includes('isolation moyenne') || input.includes('moyennement isolé')) {
-      extractedData.insulationStatus = 'moyen';
-    } else if (input.includes('mauvaise isolation') || input.includes('mal isolé')) {
-      extractedData.insulationStatus = 'mauvais';
-    }
+  } else if (input.includes('pas de gaz') || input.includes('sans gaz')) {
+    extractedData.gasUsage = false;
+  }
+  
+  // Essayer de détecter le type de propriété
+  if (input.includes('maison')) {
+    extractedData.propertyType = 'maison';
+  } else if (input.includes('appartement')) {
+    extractedData.propertyType = 'appartement';
+  } else if (input.includes('bureau') || input.includes('commercial')) {
+    extractedData.propertyType = 'commercial';
+  }
+  
+  // Essayer de détecter la superficie
+  const areaMatch = input.match(/(\d+)\s*m2/i);
+  if (areaMatch) {
+    extractedData.area = parseInt(areaMatch[1]);
+  }
+  
+  // Essayer de détecter l'année de construction
+  const yearMatch = input.match(/(19|20)(\d{2})/);
+  if (yearMatch) {
+    extractedData.constructionYear = parseInt(yearMatch[0]);
+  }
+  
+  // Essayer de détecter l'état de l'isolation
+  if (input.includes('bonne isolation') || input.includes('bien isolé')) {
+    extractedData.insulationStatus = 'bonne';
+  } else if (input.includes('isolation moyenne') || input.includes('moyennement isolé')) {
+    extractedData.insulationStatus = 'moyenne';
+  } else if (input.includes('mauvaise isolation') || input.includes('mal isolé')) {
+    extractedData.insulationStatus = 'mauvaise';
   }
   
   return extractedData;
 }
 
-// Types
-// Types pour les données d'audit extraites
-interface ProfileData {
+// Types pour les données d'audit unifiées
+
+// Type pour toutes les données d'audit
+interface AuditData {
   userType?: string;
   region?: string;
-}
-
-interface ConsumptionData {
   electricityUsage?: number;
   gasUsage?: boolean;
   gasConsumption?: number;
-}
-
-interface PropertyData {
   propertyType?: string;
   area?: number;
   constructionYear?: number;
   insulationStatus?: string;
 }
 
-// Type union pour toutes les données extraites possibles
-type ExtractedData = ProfileData & ConsumptionData & PropertyData;
+// Type pour les données extraites (structure simplifiée)
+interface ExtractedData {
+  userType?: string;
+  region?: string;
+  electricityUsage?: number;
+  gasUsage?: boolean;
+  gasConsumption?: number;
+  propertyType?: string;
+  area?: number;
+  constructionYear?: number;
+  insulationStatus?: string;
+}
 
 interface Message {
   id: string;
@@ -168,59 +173,61 @@ interface OpenAIResponse {
   extractedData: ExtractedData;
 }
 
-// Type pour les données d'audit complètes
-interface AuditData {
-  profile: ProfileData;
-  consumption: ConsumptionData;
-  property: PropertyData;
-}
-
 interface VoiceAuditAssistantProps {
   userId: string;
-  initialAgentType?: 'profile' | 'consumption' | 'property';
   onAuditComplete?: (auditData: Record<string, any>) => void;
 }
 
 const VoiceAuditAssistant: React.FC<VoiceAuditAssistantProps> = ({ 
   userId, 
-  initialAgentType = 'profile',
   onAuditComplete 
-}) => {
+}: VoiceAuditAssistantProps): JSX.Element => {
+  // Déclarations d'état
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<ConversationHistoryItem[]>([]);
+  const [inputText, setInputText] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [auditData, setAuditData] = useState<AuditData>({});
+  const [currentAgentType, setCurrentAgentType] = useState<string>('profile');
+  const initialAgentType = 'profile';
+  const [processingMessage, setProcessingMessage] = useState<string>('');
+  const [isAuditCompleted, setIsAuditCompleted] = useState<boolean>(false);
+  const [isSpeechRecognitionAvailable, setIsSpeechRecognitionAvailable] = useState<boolean>(false);
+
+  // Références
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const speechRecognition = useRef<any>(null); // Using 'any' for SpeechRecognition as type might not be globally available
+  const conversationHistoryRef = useRef(conversationHistory);
+  const auditDataRef = useRef(auditData);
+  const isAuditCompletedRef = useRef(isAuditCompleted); 
   const theme = useTheme();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    conversationHistoryRef.current = conversationHistory;
+  }, [conversationHistory]);
+
+  useEffect(() => {
+    auditDataRef.current = auditData;
+  }, [auditData]);
+
+  useEffect(() => {
+    isAuditCompletedRef.current = isAuditCompleted; 
+  }, [isAuditCompleted]);
+
   // Initialiser directement avec le message de bienvenue pour éviter les doublons
   const welcomeMessage: Message = {
     id: generateUUID(),
-    content: initialAgentType === 'profile' 
-      ? "Bonjour ! Je suis votre assistant d'audit DynamoPro. Pour commencer, pourriez-vous me dire si vous êtes un particulier, un indépendant ou une entreprise ?" 
-      : initialAgentType === 'consumption'
-      ? "Parlons de votre consommation énergétique. Utilisez-vous principalement de l'électricité, du gaz, ou les deux ? Connaissez-vous votre consommation annuelle ?"
-      : "Décrivez-moi votre propriété. S'agit-il d'un appartement, d'une maison ou d'un bâtiment commercial ?",
-    sender: 'assistant' as 'user' | 'assistant' | 'system',
+    content: "Bonjour ! Je suis votre assistant d'audit énergétique DynamoPro. Je vais vous aider à réaliser un bilan complet pour vous proposer des recommandations personnalisées. Dites-moi tout sur votre profil (particulier, entreprise), votre région, votre consommation d'énergie et votre propriété.",
+    sender: 'assistant',
     timestamp: new Date()
   };
-  const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
-  const [inputText, setInputText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [currentAgentType, setCurrentAgentType] = useState<'profile' | 'consumption' | 'property'>(initialAgentType);
-  const [auditData, setAuditData] = useState<Record<string, any>>({
-    profile: {},
-    consumption: {},
-    property: {}
-  });
-  
-  // Historique de conversation pour le LLM
-  const [conversationHistory, setConversationHistory] = useState<ConversationHistoryItem[]>([]);
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const speechRecognition = useRef<any>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  
-  // Initialiser l'historique de conversation avec le message de bienvenue
+
   useEffect(() => {
     // Ajouter le message de bienvenue à l'historique de conversation pour OpenAI
     setConversationHistory([
-      { role: 'system', content: `Type d'agent actuel: ${currentAgentType}` },
+      { role: 'system', content: `Type d'agent actuel: ${initialAgentType}` },
       { role: 'assistant', content: welcomeMessage.content }
     ]);
   }, []); // Dépendances vides = exécution unique au montage
@@ -233,18 +240,21 @@ const VoiceAuditAssistant: React.FC<VoiceAuditAssistantProps> = ({
   // Initialize speech recognition
   useEffect(() => {
     // Check if browser supports SpeechRecognition
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
     if (SpeechRecognition) {
+      setIsSpeechRecognitionAvailable(true);
       speechRecognition.current = new SpeechRecognition();
       speechRecognition.current.continuous = true;
       speechRecognition.current.interimResults = true;
       speechRecognition.current.lang = 'fr-FR'; // Set to French
       
-      speechRecognition.current.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0])
-          .map((result) => result.transcript)
+      speechRecognition.current.onresult = (event: any) => {
+        // Use type assertions to help TypeScript understand the structure
+        const results = event.results as any[];
+        const transcript = Array.from(results)
+          .map((result: any) => result[0])
+          .map((result: any) => result.transcript as string)
           .join('');
         
         setInputText(transcript);
@@ -271,443 +281,84 @@ const VoiceAuditAssistant: React.FC<VoiceAuditAssistantProps> = ({
     }
     setIsRecording(!isRecording);
   };
-  
+
   const addMessage = (message: Message) => {
-    setMessages(prev => [...prev, message]);
-    
-    // Si le message est de l'utilisateur ou de l'assistant, l'ajouter à l'historique de conversation
+    setMessages((prev) => [...prev, message]);
+
     if (message.sender === 'user' || message.sender === 'assistant') {
-      setConversationHistory(prev => [
+      setConversationHistory((prev) => [
         ...prev,
-        { role: message.sender, content: message.content }
+        {
+          role: message.sender as 'user' | 'assistant' | 'system',
+          content: message.content
+        }
       ]);
     }
   };
-  
-  // Analyser la conversation pour éviter les questions répétitives
-  const analyzeConversationContext = () => {
-    // Récupérer les derniers messages pour l'analyse contextuelle
-    const lastMessages = messages.slice(-5);
-    const lastUserMessages = lastMessages.filter(m => m.sender === 'user').map(m => m.content.toLowerCase());
-    const lastAssistantMessages = lastMessages.filter(m => m.sender === 'assistant').map(m => m.content.toLowerCase());
-    
-    // Détecter si l'assistant pose des questions répétitives
-    const repetitiveQuestions = {
-      userType: lastAssistantMessages.filter(m => 
-        m.includes('particulier') && m.includes('indépendant') && m.includes('entreprise')
-      ).length > 1,
-      region: lastAssistantMessages.filter(m => 
-        m.includes('région') && m.includes('wallonie') && m.includes('bruxelles')
-      ).length > 1,
-      consumption: lastAssistantMessages.filter(m => 
-        m.includes('consommation') && m.includes('électricité') && m.includes('kwh')
-      ).length > 1,
-      property: lastAssistantMessages.filter(m => 
-        m.includes('propriété') && m.includes('maison') && m.includes('appartement')
-      ).length > 1
-    };
-    
-    // Détecter si l'utilisateur a déjà fourni certaines informations
-    const userProvidedInfo = {
-      userType: lastUserMessages.some(m => 
-        m.includes('particulier') || m.includes('indépendant') || m.includes('entreprise') ||
-        m.includes('individu') || m.includes('société') || m.includes('freelance')
-      ),
-      region: lastUserMessages.some(m => 
-        m.includes('wallonie') || m.includes('bruxelles') || m.includes('flandre') ||
-        m.includes('liège') || m.includes('namur') || m.includes('anvers')
-      ),
-      consumption: lastUserMessages.some(m => 
-        m.includes('kwh') || m.includes('électricité') || m.includes('gaz') ||
-        m.includes('consommation') || /\d+/.test(m)
-      ),
-      property: lastUserMessages.some(m => 
-        m.includes('maison') || m.includes('appartement') || m.includes('m2') ||
-        m.includes('construction') || m.includes('bâtiment')
-      )
-    };
-    
-    return { repetitiveQuestions, userProvidedInfo };
-  };
-  
-  // Fonction pour mettre à jour les données d'audit avec les informations extraites
-  const updateAuditData = (extractedData: ExtractedData) => {
-    if (!extractedData || Object.keys(extractedData).length === 0) return;
-    
-    console.log('Mise à jour des données d\'audit avec:', extractedData);
-    
-    setAuditData(prevData => {
-      const newData = { ...prevData };
-      
-      // Mettre à jour toutes les données extraites, quel que soit l'agent actuel
-      // Données de profil
-      if (extractedData.userType) {
-        newData.profile.userType = extractedData.userType;
-      }
-      if (extractedData.region) {
-        newData.profile.region = extractedData.region;
-      }
-      
-      // Données de consommation
-      if (extractedData.electricityUsage) {
-        newData.consumption.electricityUsage = extractedData.electricityUsage;
-      }
-      if (extractedData.gasUsage !== undefined) {
-        newData.consumption.gasUsage = extractedData.gasUsage;
-      }
-      if (extractedData.gasConsumption) {
-        newData.consumption.gasConsumption = extractedData.gasConsumption;
-      }
-      
-      // Données de propriété
-      if (extractedData.propertyType) {
-        newData.property.type = extractedData.propertyType;
-      }
-      if (extractedData.area) {
-        newData.property.size = extractedData.area;
-      }
-      if (extractedData.constructionYear) {
-        newData.property.constructionYear = extractedData.constructionYear;
-      }
-      if (extractedData.insulationStatus) {
-        newData.property.insulation = extractedData.insulationStatus;
-      }
-      
-      console.log('Nouvelles données d\'audit:', newData);
-      return newData;
-    });
-  };
 
-  // Fonction pour sauvegarder les données d'audit dans le backend
-  const saveAuditData = async (data: AuditData) => {
-    try {
-      // Récupérer l'ID utilisateur depuis le localStorage ou le contexte d'authentification
-      const userId = localStorage.getItem('userId') || '00000000-0000-0000-0000-000000000000';
-      
-      // Sauvegarder les données localement d'abord (comme sauvegarde)
-      const localAuditKey = `audit_${userId}_${new Date().toISOString()}`;
-      localStorage.setItem(localAuditKey, JSON.stringify({
-        userId,
-        auditData: data,
-        createdAt: new Date().toISOString()
-      }));
-      console.log('Données d\'audit sauvegardées localement:', localAuditKey);
-      
-      try {
-        const response = await fetch('/api/v1/audits', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            userId: userId,
-            auditData: data
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Erreur lors de la sauvegarde des données d'audit: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log('Données d\'audit sauvegardées avec succès sur le serveur:', result);
-        return result;
-      } catch (apiError) {
-        console.error('Erreur lors de la sauvegarde des données d\'audit sur le serveur:', apiError);
-        console.log('Utilisation des données sauvegardées localement');
-        
-        // Retourner un objet similaire à ce que l'API aurait retourné
-        return {
-          id: generateUUID(),
-          userId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          auditData: data
-        };
-      }
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde des données d\'audit:', error);
-      // Continuer malgré l'erreur pour ne pas bloquer l'utilisateur
-      return {
-        id: generateUUID(),
-        userId: localStorage.getItem('userId') || '00000000-0000-0000-0000-000000000000',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        auditData: data
-      };
-    }
-  };
-
-  // Fonction pour générer des recommandations détaillées basées sur l'IA
-  const finalizeAudit = async () => {
+  // Fonction pour traiter le message utilisateur avec l'IA
+  const processUserMessage = async (
+    userInput: string, 
+    currentAgentTypeArg: string, 
+    currentConversationHistory: ConversationHistoryItem[]
+  ): Promise<OpenAIResponse | null> => { // Explicit return type
     setIsProcessing(true);
-    
-    try {
-      // Importer l'utilitaire de stockage d'audit
-      const { saveAuditData } = await import('../../utils/auditStorage');
-      
-      // Créer un prompt pour demander un résumé structuré des données collectées
-      const finalPrompt = "Nous avons terminé l'audit. Peux-tu résumer toutes les informations collectées au format JSON avec la structure suivante : { userType, region, electricityUsage, gasUsage, gasConsumption, propertyType, area, constructionYear, insulationStatus } ? Utilise uniquement les informations fournies pendant notre conversation.";
-      
-      // Ajouter le message système à l'interface utilisateur
-      const systemMessage: Message = {
-        id: generateUUID(),
-        content: "Finalisation de l'audit et génération du résumé...",
-        sender: 'system',
-        timestamp: new Date()
-      };
-      
-      setMessages(msgs => [...msgs, systemMessage]);
-      
-      // Appeler l'API OpenAI pour obtenir le résumé structuré
-      const response = await OpenAIService.processMessage(finalPrompt, 'summary', conversationHistory);
-      
-      console.log('Réponse du résumé structuré:', response);
-      
-      // Essayer d'extraire le JSON de la réponse
-      let jsonData: any = null;
-      
-      // Rechercher un objet JSON dans la réponse
-      const jsonMatch = response.message.match(/\{[\s\S]*?\}/g);
-      if (jsonMatch && jsonMatch.length > 0) {
-        try {
-          jsonData = JSON.parse(jsonMatch[0]);
-          console.log('Données JSON extraites:', jsonData);
-        } catch (e) {
-          console.error('Erreur lors du parsing JSON:', e);
-        }
-      }
-      
-      if (!jsonData) {
-        // Essayer d'extraire les données via le extractedData fourni par l'API
-        jsonData = response.extractedData || {};
-      }
-      
-      if (jsonData) {
-        // Formater les données pour l'API de recommandations
-        const formattedData = {
-          timestamp: new Date().toISOString(),
-          data: jsonData
-        };
-        
-        // Utiliser l'utilitaire pour sauvegarder les données d'audit
-        const saveResult = saveAuditData(formattedData);
-        
-        if (!saveResult) {
-          console.warn('Problème lors de la sauvegarde des données d\'audit avec l\'utilitaire, utilisation de la méthode de secours');
-          // Méthode de secours: sauvegarder directement dans localStorage
-          localStorage.setItem('dynamopro_current_audit', JSON.stringify(formattedData));
-        }
-        
-        // Ajouter un message d'assistant montrant le résumé
-        const summaryMessage: Message = {
-          id: generateUUID(),
-          content: `Merci pour toutes ces informations ! J'ai résumé les données de votre audit et les ai sauvegardées dans votre profil. Vous pouvez maintenant accéder à vos recommandations personnalisées ou consulter ces données dans votre profil.`,
-          sender: 'assistant',
-          timestamp: new Date(),
-          extractedData: jsonData
-        };
-        
-        setMessages(msgs => [...msgs, summaryMessage]);
-        
-        // Appeler le callback onAuditComplete si fourni
-        if (onAuditComplete) {
-          onAuditComplete(formattedData);
-        }
-        
-        return formattedData;
-      } else {
-        throw new Error('Impossible d\'extraire les données structurées de la réponse');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la finalisation de l\'audit:', error);
-      
-      // Ajouter un message d'erreur
-      const errorMessage: Message = {
-        id: generateUUID(),
-        content: "Désolé, j'ai rencontré une erreur lors de la finalisation de l'audit. Veuillez réessayer ou contacter le support.",
-        sender: 'system',
-        timestamp: new Date()
-      };
-      
-      setMessages(msgs => [...msgs, errorMessage]);
-      return null;
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    setProcessingMessage(`Traitement de votre demande avec l'agent ${currentAgentTypeArg}...`);
 
-  // Fonction pour vérifier et éventuellement changer d'agent
-  const checkAndSwitchAgentIfNeeded = () => {
-    console.log('Vérification du changement d\'agent:', currentAgentType);
-    console.log('Données de profil:', auditData.profile);
-    console.log('Données de consommation:', auditData.consumption);
-    
-    // Si nous sommes en train de collecter des informations de profil et que nous avons
-    // suffisamment d'informations (userType et region), passer à l'agent de consommation
-    if (currentAgentType === 'profile' && 
-        auditData.profile.userType && 
-        auditData.profile.region) {
-          
-      console.log('Passage à l\'agent de consommation');
-      setCurrentAgentType('consumption');
-      
-      // Ajouter un message de transition
-      const transitionMessage: Message = {
-        id: generateUUID(),
-        content: "Maintenant, parlons de votre consommation énergétique. Utilisez-vous principalement de l'électricité, du gaz, ou les deux ? Connaissez-vous votre consommation annuelle ?",
-        sender: 'assistant',
-        timestamp: new Date()
-      };
-      
-      setMessages(prevMessages => [...prevMessages, transitionMessage]);
-      
-      // Mettre à jour l'historique de conversation avec le nouveau contexte
-      setConversationHistory(history => [
-        ...history,
-        {
-          role: 'assistant',
-          content: transitionMessage.content
-        }
-      ]);
-      
-      return;
-    }
-    
-    // Si nous sommes en train de collecter des informations de consommation et que nous avons
-    // des données sur l'électricité et le gaz, passer à l'agent de propriété
-    if (currentAgentType === 'consumption' && 
-        (typeof auditData.consumption.electricityUsage === 'number' || auditData.consumption.electricityUsage === false) && 
-        (typeof auditData.consumption.gasUsage === 'boolean')) {
-          
-      console.log('Passage à l\'agent de propriété');
-      setCurrentAgentType('property');
-      
-      // Ajouter un message de transition
-      const transitionMessage: Message = {
-        id: generateUUID(),
-        content: "Parlons maintenant de votre propriété. S'agit-il d'un appartement, d'une maison ou d'un bâtiment commercial ? Quelle est sa superficie approximative et son année de construction ?",
-        sender: 'assistant',
-        timestamp: new Date()
-      };
-      
-      setMessages(prevMessages => [...prevMessages, transitionMessage]);
-      
-      // Mettre à jour l'historique de conversation avec le nouveau contexte
-      setConversationHistory(history => [
-        ...history,
-        {
-          role: 'assistant',
-          content: transitionMessage.content
-        }
-      ]);
-      
-      return;
-    }
-    
-    // Si nous avons collecté des informations sur la propriété et qu'elles sont suffisantes, finaliser l'audit
-    if (currentAgentType === 'property' && 
-        auditData.property.propertyType && 
-        auditData.property.area && 
-        auditData.property.constructionYear) {
-          
-      console.log('Finalisation de l\'audit - toutes les données nécessaires sont collectées');
-      
-      // Ajouter un message de transition avant la finalisation
-      const transitionMessage: Message = {
-        id: generateUUID(),
-        content: "Merci pour toutes ces informations. Je vais maintenant finaliser l'audit et préparer vos recommandations personnalisées.",
-        sender: 'assistant',
-        timestamp: new Date()
-      };
-      
-      setMessages(prevMessages => [...prevMessages, transitionMessage]);
-      
-      // Mettre à jour l'historique de conversation avec le message de finalisation
-      setConversationHistory(history => [
-        ...history,
-        {
-          role: 'assistant',
-          content: transitionMessage.content
-        }
-      ]);
-      
-      // Lancer la finalisation de l'audit de manière asynchrone
-      setTimeout(() => {
-        finalizeAudit();
-      }, 1000);
-      
-      return;
-    }
-  };
-  
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || isProcessing) return;
-    
-    // Ajouter le message de l'utilisateur à la conversation
-    const userMessage: Message = {
-      id: generateUUID(),
-      content: inputText,
-      sender: 'user',
-      timestamp: new Date()
-    };
-    
-    addMessage(userMessage);
-    setInputText('');
-    setIsProcessing(true);
-    
+    // Construire l'historique de conversation pour l'API OpenAI
+    const apiConversationHistory = [
+      { role: 'system', content: `Vous êtes un assistant spécialisé dans la collecte d'informations pour un audit énergétique. Agent actuel: ${currentAgentTypeArg}. Objectif: collecter des informations spécifiques à cet agent. Posez des questions claires et concises.` },
+      ...currentConversationHistory,
+      { role: 'user', content: userInput }
+    ];
+
     try {
-      // Appeler l'API OpenAI pour obtenir une réponse
-      let response;
-      try {
-        response = await OpenAIService.processMessage(inputText, currentAgentType, conversationHistory);
-      } catch (apiError) {
-        console.error('Erreur lors de l\'appel à l\'API OpenAI:', apiError);
-        
-        // Utiliser une réponse de secours si l'API est indisponible
-        response = {
-          message: "Je comprends votre demande. Malheureusement, je rencontre des difficultés de connexion avec mon service de traitement. Je vais tout de même enregistrer vos informations et continuer notre conversation.",
-          extractedData: generateFallbackExtractedData(inputText, currentAgentType)
-        };
+      // Appel corrigé: OpenAIService.processMessage attend 2 arguments
+      const response = await OpenAIService.processMessage(userInput, apiConversationHistory.slice(0, -1)); 
+      // Pass all history except the last user message which is the new prompt itself
+
+      let aiResponseText = "Je n'ai pas compris, pouvez-vous reformuler ?";
+      let extractedDataFromAI: ExtractedData = {};
+
+      if (typeof response === 'string') {
+        aiResponseText = response; // Simple string response
+      } else if (response && response.message) {
+        aiResponseText = response.message;
+        if (response.extractedData) {
+          extractedDataFromAI = response.extractedData;
+        }
       }
-      
-      // Extraire les données de la réponse
-      const extractedData = response.extractedData || {};
-      
-      // Mettre à jour les données d'audit avec les informations extraites
-      if (Object.keys(extractedData).length > 0) {
-        updateAuditData(extractedData);
+
+      if (Object.keys(extractedDataFromAI).length === 0) {
+        console.log("AI did not return structured data, attempting fallback extraction.");
+        extractedDataFromAI = generateFallbackExtractedData(userInput + " " + aiResponseText);
       }
-      
-      // Ajouter la réponse de l'assistant à la conversation
-      const assistantMessage: Message = {
+
+      addMessage({
         id: generateUUID(),
-        content: response.message,
+        content: aiResponseText,
         sender: 'assistant',
         timestamp: new Date(),
-        extractedData: extractedData
-      };
-      
-      addMessage(assistantMessage);
-      
-      // Vérifier si nous devons changer d'agent
-      checkAndSwitchAgentIfNeeded();
-      
+        extractedData: extractedDataFromAI
+      });
+
+      if (Object.keys(extractedDataFromAI).length > 0) {
+        updateAuditData(extractedDataFromAI);
+      }
+
+      return { message: aiResponseText, extractedData: extractedDataFromAI }; // Return the response and data
+
     } catch (error) {
       console.error('Erreur lors de la communication avec l\'API:', error);
-      
-      // Ajouter un message d'erreur
       const errorMessage: Message = {
         id: generateUUID(),
         content: "Désolé, j'ai rencontré une erreur technique. Vos informations ont été sauvegardées localement. Vous pouvez continuer ou rafraîchir la page si le problème persiste.",
         sender: 'system',
         timestamp: new Date()
       };
-      
+
       addMessage(errorMessage);
-      
-      // Sauvegarder les données actuelles dans localStorage pour ne pas perdre la progression
+
       try {
         const currentAuditData = {
           timestamp: new Date().toISOString(),
@@ -718,163 +369,397 @@ const VoiceAuditAssistant: React.FC<VoiceAuditAssistantProps> = ({
       } catch (storageError) {
         console.error('Erreur lors de la sauvegarde de secours:', storageError);
       }
+      return null; // Return null in case of error
     } finally {
       setIsProcessing(false);
+      setProcessingMessage("");
     }
   };
-  
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+
+  const updateAuditData = (extractedData: ExtractedData) => {
+    if (!extractedData || Object.keys(extractedData).length === 0) return;
+
+    setAuditData((prevData) => {
+      const newData = { ...prevData, ...extractedData };
+      auditDataRef.current = newData; // Update ref immediately
+      checkIfAuditIsComplete(newData); // Pass the fresh newData
+      return newData;
+    });
+  };
+
+  // Vérifier si toutes les données nécessaires pour l'audit sont collectées
+  const checkIfAuditIsComplete = (data: AuditData): boolean => {
+    // Logique de complétion basée sur la structure AuditData aplatie
+    const profileFieldsComplete = data.userType && data.region;
+    const consumptionFieldsComplete = 
+      data.electricityUsage !== undefined && 
+      data.gasUsage !== undefined; // gasConsumption est optionnel
+    const propertyFieldsComplete = 
+      data.propertyType && 
+      data.area !== undefined; // constructionYear et insulationStatus sont optionnels
+
+    const isComplete = 
+      !!profileFieldsComplete && 
+      !!consumptionFieldsComplete && 
+      !!propertyFieldsComplete;
+
+    if (isComplete && !isAuditCompletedRef.current) { 
+      console.log("Audit is complete according to checkIfAuditIsComplete. Finalizing...", data);
+      finalizeAudit(); 
+    }
+    return isComplete;
+  };
+
+  // Finaliser l'audit, obtenir un résumé JSON et sauvegarder
+  const finalizeAudit = async () => {
+    if (isAuditCompletedRef.current) { 
+      console.log("FinalizeAudit called but audit is already completed.");
+      return;
+    }
+    console.log("Finalizing audit...");
+    setIsProcessing(true);
+    setProcessingMessage("Finalisation de l'audit et génération du résumé...");
+
+    // Utiliser l'historique complet pour le résumé
+    const finalPrompt = "Nous avons terminé la collecte d'informations pour l'audit énergétique. Peux-tu fournir un résumé complet et structuré de toutes les données collectées au format JSON ? Assure-toi d'inclure toutes les informations pertinentes que j'ai fournies.";
+    
+    // Construire un historique de conversation spécifique pour la finalisation si nécessaire
+    // ou simplement utiliser conversationHistoryRef.current qui est le plus à jour.
+    const historyForSummary = [...conversationHistoryRef.current, {role: 'user', content: finalPrompt}];
+
+    try {
+      // Appeler l'API OpenAI pour obtenir le résumé JSON
+      const response = await OpenAIService.processMessage(finalPrompt, historyForSummary);
+      
+      let summaryData: ExtractedData = {};
+      if (typeof response === 'string') {
+        // Si la réponse est une chaîne, essayer de la parser comme JSON
+        // Cela peut arriver si l'API ne renvoie pas la structure attendue
+        try {
+          const parsedResponse = JSON.parse(response);
+          if (parsedResponse.extractedData) {
+            summaryData = parsedResponse.extractedData;
+          } else if (typeof parsedResponse === 'object') {
+            // Si la réponse parsée est un objet mais sans extractedData, l'utiliser directement
+            summaryData = parsedResponse;
+          } else {
+            // Si la réponse n'est pas un JSON valide ou n'a pas la structure attendue
+            // On se rabat sur les données collectées dans auditData
+            addMessage({
+              id: generateUUID(),
+              content: `Je n'ai pas pu obtenir un résumé structuré de l'IA. J'utiliserai les données collectées: ${response}`,
+              sender: 'system',
+              timestamp: new Date(),
+            });
+            summaryData = { ...auditDataRef.current }; // Utiliser la réf pour auditData
+          }
+        } catch (e) {
+          console.error("Failed to parse summary response from AI as JSON:", e);
+          addMessage({
+            id: generateUUID(),
+            content: `Erreur lors du traitement du résumé de l'IA. J'utiliserai les données collectées. Réponse IA: ${response}`,
+            sender: 'system',
+            timestamp: new Date(),
+          });
+          summaryData = { ...auditDataRef.current }; // Utiliser la réf pour auditData
+        }
+      } else if (response && response.extractedData) {
+        summaryData = response.extractedData;
+      } else {
+        // Si la réponse n'est pas une chaîne et n'a pas extractedData, utiliser auditData
+        console.warn("AI response for summary was not in expected format, falling back to collected auditData.");
+        summaryData = { ...auditDataRef.current }; // Utiliser la réf pour auditData
+      }
+
+      // S'assurer que summaryData contient bien toutes les informations de auditData
+      // car l'IA peut omettre des champs ou mal interpréter.
+      const comprehensiveSummary = { ...auditDataRef.current, ...summaryData };
+      setAuditData(comprehensiveSummary); // Mettre à jour l'état final avec le résumé le plus complet.
+
+      addMessage({
+        id: generateUUID(),
+        content: "Audit finalisé. Voici le résumé des informations collectées :\n" + JSON.stringify(comprehensiveSummary, null, 2),
+        sender: 'assistant',
+        timestamp: new Date(),
+        extractedData: comprehensiveSummary
+      });
+
+      // Sauvegarder les données d'audit finales et complètes
+      await saveAuditData(comprehensiveSummary);
+      setIsAuditCompleted(true); // Marquer l'audit comme terminé
+      if(onAuditComplete) {
+        onAuditComplete(comprehensiveSummary as Record<string, any>);
+      }
+      setProcessingMessage("Audit terminé. Vous pouvez maintenant voir vos recommandations.");
+
+    } catch (error) {
+      console.error("Error finalizing audit:", error);
+      addMessage({
+        id: generateUUID(),
+        content: "Une erreur est survenue lors de la finalisation de l'audit. Les données actuelles ont été sauvegardées.",
+        sender: 'system',
+        timestamp: new Date(),
+      });
+      // Sauvegarder quand même les données actuelles en cas d'erreur de finalisation AI
+      await saveAuditData(auditDataRef.current); // Utiliser la réf pour auditData
+    } finally {
+      setIsProcessing(false);
+      setProcessingMessage("");
     }
   };
-  
-  const getAgentIcon = () => {
-    switch (currentAgentType) {
-      case 'profile':
-        return <Home />;
-      case 'consumption':
-        return <Bolt />;
-      case 'property':
-        return <Business />;
-      default:
-        return <Home />;
+
+  const checkAndSwitchAgentIfNeeded = () => {
+    if (currentAgentType === 'profile' && auditData.userType && auditData.region) {
+      console.log("Passage à l'agent de consommation");
+      setCurrentAgentType('consumption');
+
+      const transitionMessage: Message = {
+        id: generateUUID(),
+        content: "Maintenant, parlons de votre consommation énergétique. Utilisez-vous principalement de l'électricité, du gaz, ou les deux ? Connaissez-vous votre consommation annuelle ?",
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+
+      addMessage(transitionMessage);
+      return true;
+    }
+
+    if (currentAgentType === 'consumption' && (typeof auditData.electricityUsage === 'number' || auditData.electricityUsage === false) && (typeof auditData.gasUsage === 'boolean')) {
+      console.log("Passage à l'agent de propriété");
+      setCurrentAgentType('property');
+
+      const transitionMessage: Message = {
+        id: generateUUID(),
+        content: "Parlons maintenant de votre propriété. S'agit-il d'un appartement, d'une maison ou d'un bâtiment commercial ? Quelle est sa superficie approximative et son année de construction ?",
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+
+      addMessage(transitionMessage);
+      return true;
+    }
+
+    if (currentAgentType === 'property' && auditData.propertyType && auditData.area && auditData.constructionYear && auditData.insulationStatus) {
+      console.log('Finalisation de l\'audit - toutes les données nécessaires sont collectées');
+
+      const transitionMessage: Message = {
+        id: generateUUID(),
+        content: "Merci pour toutes ces informations. Je vais maintenant finaliser l'audit et préparer vos recommandations personnalisées.",
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+
+      addMessage(transitionMessage);
+
+      setTimeout(() => {
+        finalizeAudit();
+      }, 1000);
+    }
+
+    return false;
+  };
+
+  // Gérer l'envoi de message par l'utilisateur
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || isProcessing) return;
+
+    const userMessage: Message = {
+      id: generateUUID(),
+      content: inputText,
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    addMessage(userMessage);
+    const currentInputText = inputText; // Capture inputText before clearing
+    setInputText('');
+    // No need to setIsProcessing(true) here, processUserMessage does it
+
+    // Pass the current conversation history from the ref
+    const aiOutcome = await processUserMessage(currentInputText, currentAgentType, conversationHistoryRef.current);
+
+    if (aiOutcome && aiOutcome.message) { // Check if aiOutcome is not null and has a message
+      // AI message is already added by processUserMessage
+      // Extracted data is already updated by processUserMessage
+      // So, no need to call addMessage or updateAuditData here again for the AI response itself.
+      
+      // Only need to check if agent needs to switch
+      checkAndSwitchAgentIfNeeded();
+    } else {
+      // Error or no response case is handled within processUserMessage by adding a system error message
+      console.log("handleSendMessage: processUserMessage returned null or no message, error likely handled within.");
+    }
+    // setIsProcessing(false) is handled by processUserMessage's finally block
+  };
+
+  // Sauvegarder les données d'audit
+  const saveAuditData = async (dataToSave: AuditData) => { // dataToSave is the local component's AuditData type
+    console.log("Attempting to save audit data:", dataToSave, "for user:", userId);
+    if (!userId) {
+      console.error("User ID is missing, cannot save audit data.");
+      // Peut-être afficher un message à l'utilisateur ou simplement ne pas sauvegarder
+      addMessage({
+        id: generateUUID(),
+        content: "Erreur: Impossible de sauvegarder l'audit car l'identifiant utilisateur est manquant.",
+        sender: 'system',
+        timestamp: new Date(),
+      });
+      return; // Ne pas continuer si userId est manquant
+    }
+
+    try {
+      // 1. Save to localStorage (using specific key as per memory)
+      const localDataToStore = {
+        timestamp: new Date().toISOString(),
+        data: dataToSave,
+        userId: userId 
+      };
+      localStorage.setItem('dynamopro_current_audit', JSON.stringify(localDataToStore));
+      console.log('Audit data saved to localStorage under dynamopro_current_audit.');
+
+      // 2. Save to backend API
+      const response = await fetch('/api/v1/audits', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ userId: userId, auditData: dataToSave }), // Utiliser le userId des props
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Failed to save audit data to server: ${response.status} - ${errorText}`);
+        // Envoyer un message système à l'utilisateur au lieu de lancer une erreur qui pourrait ne pas être gérée plus haut
+        addMessage({
+          id: generateUUID(),
+          content: `Les données ont été sauvegardées localement, mais une erreur est survenue lors de la sauvegarde sur le serveur: ${response.status}. Veuillez vérifier votre connexion ou contacter le support.`,
+          sender: 'system',
+          timestamp: new Date(),
+        });
+        // Ne pas lever d'erreur ici pour permettre à l'audit de se sentir complété côté client si la sauvegarde locale a réussi
+      } else {
+        const result = await response.json();
+        console.log('Audit data saved to server successfully:', result);
+        addMessage({
+          id: generateUUID(),
+          content: "Les données d'audit ont été sauvegardées avec succès sur le serveur et localement.",
+          sender: 'system',
+          timestamp: new Date(),
+        });
+        
+        // Dispatch to Redux store with the auditData from the server response
+        if (result && result.auditData) {
+          // Ensure the structure matches FrontendUserAuditData for type safety
+          // The backend's AuditData structure is { profile: {}, consumption: {}, property: {} }
+          // which matches our FrontendUserAuditData (formerly UserAuditData in profileSlice)
+          dispatch(setAuditDataAction(result.auditData as FrontendUserAuditData));
+          console.log('Audit data dispatched to Redux store:', result.auditData);
+        } else {
+          console.warn('Server response did not contain auditData, Redux store not updated from server response.');
+        }
+      }
+      
+      // 3. Potentially update Redux store (placeholder for actual Redux integration)
+      // if (dispatch && typeof updateUserAuditDataAction === 'function') {
+      //   dispatch(updateUserAuditDataAction(dataToSave)); // This was the old placeholder
+      //   console.log('Audit data dispatched to Redux store.');
+      // }
+
+    } catch (error) {
+      console.error('Error during saveAuditData (network error or other):', error);
+      addMessage({
+        id: generateUUID(),
+        content: `Une erreur réseau ou autre est survenue lors de la tentative de sauvegarde des données sur le serveur. Les données sont sauvegardées localement. Erreur: ${error instanceof Error ? error.message : String(error)}`,
+        sender: 'system',
+        timestamp: new Date(),
+      });
+      // Ne pas relancer l'erreur pour que l'audit puisse continuer/finaliser côté client basé sur la sauvegarde locale.
     }
   };
-  
+
   return (
-    <Paper 
-      elevation={3} 
-      sx={{ 
-        height: '70vh', 
-        display: 'flex', 
-        flexDirection: 'column',
-        borderRadius: 2,
-        overflow: 'hidden'
-      }}
-    >
-      {/* Header */}
-      <Box sx={{ 
-        p: 2, 
-        bgcolor: theme.palette.primary.main, 
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: theme.palette.background.default }}>
+      <Paper elevation={0} sx={{ p: 2, bgcolor: theme.palette.primary.main, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {getAgentIcon()}
+          {currentAgentType === 'profile' ? <Home /> : currentAgentType === 'consumption' ? <Bolt /> : <Business />}
           <Typography variant="h6" sx={{ ml: 1 }}>
-            Assistant d'Audit DynamoPro - {
-              currentAgentType === 'profile' ? 'Profil' : 
-              currentAgentType === 'consumption' ? 'Consommation' : 'Propriété'
-            }
+            {`Assistant d'Audit ${currentAgentType === 'profile' ? 'Profil' : currentAgentType === 'consumption' ? 'Consommation' : 'Propriété'}`}
           </Typography>
         </Box>
-        <Box>
-          <Chip 
-            label={isRecording ? 'Enregistrement...' : 'Prêt'} 
-            color={isRecording ? 'error' : 'success'} 
-            size="small" 
-          />
+        <Tooltip title="Remonter au début de la conversation">
+          <IconButton color="inherit" onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            <ArrowUpward />
+          </IconButton>
+        </Tooltip>
+      </Paper>
+
+      <List>
+        {messages.map((message) => (
+          <ListItem key={message.id} sx={{ justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start', mb: 2 }}>
+            <Card sx={{ maxWidth: '80%', bgcolor: message.sender === 'user' ? theme.palette.primary.light : theme.palette.background.paper, color: message.sender === 'user' ? theme.palette.primary.contrastText : theme.palette.text.primary }}>
+              <CardContent>
+                <Typography variant="body1">{message.content}</Typography>
+
+                {message.extractedData && Object.keys(message.extractedData).length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Informations collectées:
+                    </Typography>
+                    <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                      {Object.entries(message.extractedData).map(([key, value]) => (
+                        <Grid item key={key}>
+                          <Chip size="small" label={`${key}: ${value}`} variant="outlined" />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                )}
+
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </Typography>
+              </CardContent>
+            </Card>
+          </ListItem>
+        ))}
+        <div ref={messagesEndRef} />
+      </List>
+
+      {isProcessing && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+          <CircularProgress size={24} />
         </Box>
-      </Box>
-      
-      {/* Messages Area */}
-      <Box sx={{ 
-        flexGrow: 1, 
-        overflow: 'auto', 
-        p: 2,
-        bgcolor: theme.palette.background.default
-      }}>
-        <List>
-          {messages.map((message) => (
-            <ListItem 
-              key={message.id} 
-              sx={{ 
-                justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
-                mb: 2
-              }}
-            >
-              <Card 
-                sx={{ 
-                  maxWidth: '80%',
-                  bgcolor: message.sender === 'user' 
-                    ? theme.palette.primary.light 
-                    : theme.palette.background.paper,
-                  color: message.sender === 'user' 
-                    ? theme.palette.primary.contrastText 
-                    : theme.palette.text.primary
-                }}
-              >
-                <CardContent>
-                  <Typography variant="body1">{message.content}</Typography>
-                  
-                  {message.extractedData && Object.keys(message.extractedData).length > 0 && (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Informations collectées:
-                      </Typography>
-                      <Grid container spacing={1} sx={{ mt: 0.5 }}>
-                        {Object.entries(message.extractedData).map(([key, value]) => (
-                          <Grid item key={key}>
-                            <Chip 
-                              size="small" 
-                              label={`${key}: ${value}`} 
-                              variant="outlined" 
-                            />
-                          </Grid>
-                        ))}
-                      </Grid>
-                    </Box>
-                  )}
-                  
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                    {new Date(message.timestamp).toLocaleTimeString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </ListItem>
-          ))}
-          <div ref={messagesEndRef} />
-        </List>
-        
-        {isProcessing && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-            <CircularProgress size={24} />
-          </Box>
-        )}
-      </Box>
-      
-      {/* Input Area */}
-      <Box sx={{ 
-        p: 2, 
-        bgcolor: theme.palette.background.paper,
-        borderTop: `1px solid ${theme.palette.divider}`
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Tapez votre message ou parlez..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={handleKeyPress}
-            size="small"
-            disabled={isProcessing}
-            sx={{ mr: 1 }}
-            inputRef={inputRef}
-          />
-          <Tooltip title={isRecording ? "Arrêter l'enregistrement" : "Commencer à parler"}>
-            <IconButton 
-              color={isRecording ? "error" : "primary"} 
-              onClick={toggleRecording}
-              disabled={isProcessing}
-            >
-              {isRecording ? <MicOff /> : <Mic />}
-            </IconButton>
-          </Tooltip>
+      )}
+
+      <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center' }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Tapez votre message ici..."
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSendMessage();
+            }
+          }}
+          disabled={isProcessing}
+          sx={{ mr: 1 }}
+          multiline
+          maxRows={3}
+        />
+        <Tooltip title={isRecording ? "Arrêter l'enregistrement" : "Enregistrer un message vocal"}>
+          <IconButton 
+            color={isRecording ? "secondary" : "primary"} 
+            onClick={toggleRecording}
+            disabled={isProcessing || !isSpeechRecognitionAvailable}
+          >
+            {isRecording ? <MicOff /> : <Mic />}
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Envoyer le message">
           <IconButton 
             color="primary" 
             onClick={handleSendMessage}
@@ -882,9 +767,9 @@ const VoiceAuditAssistant: React.FC<VoiceAuditAssistantProps> = ({
           >
             <Send />
           </IconButton>
-        </Box>
+        </Tooltip>
       </Box>
-    </Paper>
+    </Box>
   );
 };
 
