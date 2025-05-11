@@ -1,0 +1,3 @@
+2025-05-07 15:18:23,568 - subsidy_agent - INFO - Démarrage de l'agent de subventions
+2025-05-07 15:18:23,568 - subsidy_agent - INFO - Base de données initialisée avec 9 subventions et 8 fournisseurs
+2025-05-07 15:18:23,568 - subsidy_agent - INFO - Démarrage du serveur sur 0.0.0.0:8003

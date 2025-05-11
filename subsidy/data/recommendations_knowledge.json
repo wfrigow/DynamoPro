@@ -1,0 +1,314 @@
+{
+  "energy": [
+    {
+      "title": "Installation de panneaux solaires",
+      "description_template": "L'installation de panneaux solaires permet de produire votre propre électricité et de réduire votre facture énergétique. Avec une consommation annuelle de {consumption} kWh, un système de {system_size} kWc serait adapté à vos besoins.",
+      "typical_savings": {
+        "small": 600,
+        "medium": 1200,
+        "large": 2400
+      },
+      "typical_costs": {
+        "min": 4000,
+        "max": 15000
+      },
+      "roi_range": {
+        "min": 36,
+        "max": 96
+      },
+      "ecological_impact": 9,
+      "difficulty": 6,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {
+        "wallonie": ["Prime Qualiwatt", "Réduction d'impôt fédérale"],
+        "flandre": ["Prime énergie verte", "Réduction d'impôt fédérale"],
+        "bruxelles": ["Prime Bruxell'Air", "Réduction d'impôt fédérale"]
+      },
+      "property_types": ["house", "apartment_building", "office", "commercial"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business", "large_business"]
+    },
+    {
+      "title": "Installation d'une pompe à chaleur",
+      "description_template": "Une pompe à chaleur est une solution de chauffage écologique qui utilise les calories présentes dans l'air, le sol ou l'eau pour chauffer votre habitation. Pour votre {property_type} de {area} m², une pompe à chaleur air-eau serait particulièrement adaptée.",
+      "typical_savings": {
+        "small": 800,
+        "medium": 1500,
+        "large": 3000
+      },
+      "typical_costs": {
+        "min": 8000,
+        "max": 20000
+      },
+      "roi_range": {
+        "min": 60,
+        "max": 120
+      },
+      "ecological_impact": 8,
+      "difficulty": 7,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {
+        "wallonie": ["Prime Énergie", "Prime Habitation"],
+        "flandre": ["Prime Énergie Flamande"],
+        "bruxelles": ["Prime Énergie Bruxelloise"]
+      },
+      "property_types": ["house", "apartment_building"],
+      "user_types": ["individual", "self_employed", "small_business"]
+    },
+    {
+      "title": "Amélioration de l'isolation thermique",
+      "description_template": "L'isolation thermique est la première étape pour réduire votre consommation énergétique. Pour votre {property_type} construit en {construction_year}, l'isolation des combles et des murs permettrait de réduire significativement vos besoins en chauffage.",
+      "typical_savings": {
+        "small": 400,
+        "medium": 800,
+        "large": 1500
+      },
+      "typical_costs": {
+        "min": 3000,
+        "max": 12000
+      },
+      "roi_range": {
+        "min": 48,
+        "max": 96
+      },
+      "ecological_impact": 7,
+      "difficulty": 5,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {
+        "wallonie": ["Prime Isolation", "Prime Habitation"],
+        "flandre": ["Prime Rénovation"],
+        "bruxelles": ["Prime Rénovation Bruxelloise"]
+      },
+      "property_types": ["house", "apartment", "apartment_building", "office"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business", "large_business"]
+    },
+    {
+      "title": "Remplacement des ampoules par des LED",
+      "description_template": "Le remplacement de vos ampoules traditionnelles par des LED peut réduire votre consommation d'électricité liée à l'éclairage de 80%. Pour un {property_type} de {area} m², cette mesure simple peut générer des économies significatives.",
+      "typical_savings": {
+        "small": 100,
+        "medium": 200,
+        "large": 500
+      },
+      "typical_costs": {
+        "min": 100,
+        "max": 500
+      },
+      "roi_range": {
+        "min": 6,
+        "max": 24
+      },
+      "ecological_impact": 5,
+      "difficulty": 2,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {},
+      "property_types": ["house", "apartment", "apartment_building", "office", "commercial"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business", "large_business"]
+    },
+    {
+      "title": "Installation d'un système de gestion d'énergie intelligent",
+      "description_template": "Un système de gestion d'énergie intelligent permet d'optimiser votre consommation en adaptant le chauffage, l'éclairage et les appareils électriques à vos besoins réels. Pour votre {property_type} avec une consommation de {consumption} kWh, ce système pourrait réduire votre facture de 15 à 20%.",
+      "typical_savings": {
+        "small": 300,
+        "medium": 600,
+        "large": 1200
+      },
+      "typical_costs": {
+        "min": 1000,
+        "max": 5000
+      },
+      "roi_range": {
+        "min": 24,
+        "max": 60
+      },
+      "ecological_impact": 6,
+      "difficulty": 4,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {
+        "wallonie": ["Prime Smart Energy"],
+        "flandre": ["Prime Domotique"],
+        "bruxelles": []
+      },
+      "property_types": ["house", "apartment_building", "office", "commercial"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business", "large_business"]
+    }
+  ],
+  "water": [
+    {
+      "title": "Installation d'un système de récupération d'eau de pluie",
+      "description_template": "Un système de récupération d'eau de pluie permet de collecter et réutiliser l'eau de pluie pour des usages non potables (toilettes, arrosage, nettoyage). Pour votre {property_type} avec une toiture d'environ {roof_area} m², un système de {tank_size} litres serait optimal.",
+      "typical_savings": {
+        "small": 150,
+        "medium": 300,
+        "large": 600
+      },
+      "typical_costs": {
+        "min": 2000,
+        "max": 8000
+      },
+      "roi_range": {
+        "min": 60,
+        "max": 120
+      },
+      "ecological_impact": 8,
+      "difficulty": 6,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {
+        "wallonie": ["Prime Eau"],
+        "flandre": ["Prime Eau Flamande"],
+        "bruxelles": ["Prime Eau Bruxelloise"]
+      },
+      "property_types": ["house", "apartment_building"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business"]
+    },
+    {
+      "title": "Installation de dispositifs hydro-économes",
+      "description_template": "Les dispositifs hydro-économes (mousseurs, douchettes économiques, chasses d'eau à double débit) permettent de réduire votre consommation d'eau de 30 à 50%. Pour un {property_type} avec {occupants} occupants, cette mesure simple peut générer des économies significatives.",
+      "typical_savings": {
+        "small": 100,
+        "medium": 200,
+        "large": 400
+      },
+      "typical_costs": {
+        "min": 50,
+        "max": 300
+      },
+      "roi_range": {
+        "min": 3,
+        "max": 18
+      },
+      "ecological_impact": 6,
+      "difficulty": 2,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {},
+      "property_types": ["house", "apartment", "apartment_building", "office", "commercial"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business", "large_business"]
+    },
+    {
+      "title": "Détection et réparation des fuites d'eau",
+      "description_template": "Les fuites d'eau peuvent représenter jusqu'à 20% de votre consommation totale. Une inspection et réparation des fuites dans votre {property_type} permettrait de réduire votre facture d'eau et d'éviter les dégâts potentiels.",
+      "typical_savings": {
+        "small": 120,
+        "medium": 240,
+        "large": 500
+      },
+      "typical_costs": {
+        "min": 100,
+        "max": 1000
+      },
+      "roi_range": {
+        "min": 6,
+        "max": 24
+      },
+      "ecological_impact": 7,
+      "difficulty": 3,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {},
+      "property_types": ["house", "apartment", "apartment_building", "office", "commercial"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business", "large_business"]
+    }
+  ],
+  "waste": [
+    {
+      "title": "Mise en place d'un système de compostage",
+      "description_template": "Le compostage permet de réduire vos déchets organiques tout en produisant un amendement naturel pour vos plantes. Pour votre {property_type} avec {garden_area} m² d'espace extérieur, un composteur de {composter_size} litres serait adapté.",
+      "typical_savings": {
+        "small": 50,
+        "medium": 100,
+        "large": 200
+      },
+      "typical_costs": {
+        "min": 50,
+        "max": 300
+      },
+      "roi_range": {
+        "min": 12,
+        "max": 36
+      },
+      "ecological_impact": 7,
+      "difficulty": 3,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {
+        "wallonie": ["Prime Compostage"],
+        "flandre": [],
+        "bruxelles": ["Prime Compostage Bruxelloise"]
+      },
+      "property_types": ["house", "apartment_building"],
+      "user_types": ["individual", "self_employed", "small_business"]
+    },
+    {
+      "title": "Optimisation de la gestion des déchets",
+      "description_template": "Une meilleure gestion des déchets permet de réduire votre impact environnemental et vos coûts de traitement. Pour votre {user_type} générant environ {waste_volume} de déchets, un système de tri optimisé et une sensibilisation des occupants seraient bénéfiques.",
+      "typical_savings": {
+        "small": 100,
+        "medium": 500,
+        "large": 2000
+      },
+      "typical_costs": {
+        "min": 200,
+        "max": 2000
+      },
+      "roi_range": {
+        "min": 12,
+        "max": 48
+      },
+      "ecological_impact": 8,
+      "difficulty": 4,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {},
+      "property_types": ["house", "apartment_building", "office", "commercial"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business", "large_business"]
+    }
+  ],
+  "biodiversity": [
+    {
+      "title": "Création d'un jardin ou toit végétalisé",
+      "description_template": "Un espace végétalisé favorise la biodiversité, améliore l'isolation thermique et contribue à la gestion des eaux pluviales. Pour votre {property_type} avec {available_area} m² d'espace disponible, un aménagement adapté serait bénéfique.",
+      "typical_savings": {
+        "small": 50,
+        "medium": 150,
+        "large": 300
+      },
+      "typical_costs": {
+        "min": 500,
+        "max": 5000
+      },
+      "roi_range": {
+        "min": 60,
+        "max": 120
+      },
+      "ecological_impact": 9,
+      "difficulty": 5,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {
+        "wallonie": ["Prime Biodiversité"],
+        "flandre": ["Prime Toiture Verte"],
+        "bruxelles": ["Prime Toiture Verte Bruxelloise"]
+      },
+      "property_types": ["house", "apartment_building", "office", "commercial"],
+      "user_types": ["individual", "self_employed", "small_business", "medium_business", "large_business"]
+    },
+    {
+      "title": "Installation de nichoirs et hôtels à insectes",
+      "description_template": "Les nichoirs et hôtels à insectes favorisent la présence d'espèces bénéfiques pour l'écosystème local. Pour votre {property_type} avec un espace extérieur, ces installations simples auraient un impact positif sur la biodiversité.",
+      "typical_savings": {
+        "small": 0,
+        "medium": 0,
+        "large": 0
+      },
+      "typical_costs": {
+        "min": 50,
+        "max": 300
+      },
+      "roi_range": {
+        "min": 0,
+        "max": 0
+      },
+      "ecological_impact": 7,
+      "difficulty": 2,
+      "applicable_regions": ["wallonie", "flandre", "bruxelles"],
+      "subsidies": {},
+      "property_types": ["house", "apartment_building"],
+      "user_types": ["individual", "self_employed", "small_business"]
+    }
+  ]
+}

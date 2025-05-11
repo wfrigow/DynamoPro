@@ -1,0 +1,30 @@
+{
+  "550e8400-e29b-41d4-a716-446655440000": [
+    {
+      "id": "1d34cd1b-2bcc-467d-a017-40a4bb435b72",
+      "userId": "550e8400-e29b-41d4-a716-446655440000",
+      "createdAt": "2025-05-09T02:16:06.252750",
+      "updatedAt": "2025-05-09T02:16:06.252750",
+      "auditData": {
+        "profile": {
+          "userType": "",
+          "region": "",
+          "additionalInfo": null
+        },
+        "consumption": {
+          "electricityUsage": 0,
+          "gasUsage": false,
+          "gasConsumption": 0,
+          "additionalInfo": null
+        },
+        "property": {
+          "propertyType": "",
+          "area": 100.0,
+          "constructionYear": 0,
+          "insulationStatus": "",
+          "additionalInfo": null
+        }
+      }
+    }
+  ]
+}
