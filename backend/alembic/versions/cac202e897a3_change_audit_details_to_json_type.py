@@ -22,7 +22,8 @@ def upgrade() -> None:
         batch_op.alter_column('details',
                existing_type=sa.TEXT(),
                type_=sa.JSON(),
-               existing_nullable=True)
+               existing_nullable=True,
+               postgresql_using='details::json')
     # ### end Alembic commands ###
 
 
@@ -32,5 +33,6 @@ def downgrade() -> None:
         batch_op.alter_column('details',
                existing_type=sa.JSON(),
                type_=sa.TEXT(),
-               existing_nullable=True)
+               existing_nullable=True,
+               postgresql_using='details::text')
     # ### end Alembic commands ###
