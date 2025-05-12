@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '..';
+import apiService from '../../services/api';
 
 // Detailed Audit Data structures to match backend models
 interface BackendProfileData {
@@ -97,17 +98,8 @@ export const fetchUserAudits = createAsyncThunk<
 >('profile/fetchUserAudits', async (userId, { rejectWithValue }) => {
   try {
     // 1. Fetch audit summaries for the user
-    const summariesResponse = await fetch(`/api/v1/audits?user_id=${userId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-      },
-    });
-    if (!summariesResponse.ok) {
-      const errorText = await summariesResponse.text();
-      return rejectWithValue(`Failed to fetch audit summaries: ${summariesResponse.status} - ${errorText}`);
-    }
-    const summaries: AuditSummary[] = await summariesResponse.json();
-
+    const summaries: AuditSummary[] = await apiService.get(`/audits?user_id=${userId}`);
+    
     if (summaries.length === 0) {
       // No audits found for the user, this is not an error, but no data to set
       // We could potentially dispatch an action to clear existing audit data or set a specific state
@@ -119,16 +111,7 @@ export const fetchUserAudits = createAsyncThunk<
     const latestAuditSummary = summaries[0];
 
     // 3. Fetch the full details of the most recent audit
-    const fullAuditResponse = await fetch(`/api/v1/audits/${latestAuditSummary.id}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-      },
-    });
-    if (!fullAuditResponse.ok) {
-      const errorText = await fullAuditResponse.text();
-      return rejectWithValue(`Failed to fetch full audit details: ${fullAuditResponse.status} - ${errorText}`);
-    }
-    const fullAudit: FullAuditResponse = await fullAuditResponse.json();
+    const fullAudit: FullAuditResponse = await apiService.get(`/audits/${latestAuditSummary.id}`);
     
     return fullAudit.auditData; // This will be the payload of the fulfilled action
 

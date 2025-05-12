@@ -5,7 +5,7 @@
 // URLs des APIs
 export const API_CONFIG = {
   // URL de base de l'API
-  BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:8010/api',
+  BASE_URL: process.env.REACT_APP_API_URL || 'https://nom-de-votre-app-dynamopro-b0d7b735d20c.herokuapp.com/api/v1',
   
   // URLs spécifiques
   AUTH_URL: '/auth',
