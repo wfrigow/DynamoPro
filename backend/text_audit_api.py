@@ -14,15 +14,13 @@ from pydantic import BaseModel, ConfigDict
 
 app = FastAPI()
 
-# Configurer CORS - Configuration plus permissive pour le développement
+# Configurer CORS - Configuration très permissive pour le débogage
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Autoriser toutes les origines
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Autoriser toutes les méthodes
-    allow_headers=["*"],  # Autoriser tous les headers
-    expose_headers=["*"],  # Exposer tous les headers
-    max_age=86400,  # Mettre en cache les résultats preflight pendant 24 heures
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # Modèles Pydantic simplifiés
@@ -45,14 +43,6 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
-
-@app.options("/{rest_of_path:path}")
-async def options_route(rest_of_path: str):
-    """
-    Gestionnaire global pour les requêtes OPTIONS.
-    Cela permet de répondre correctement aux requêtes preflight CORS.
-    """
-    return {"message": "CORS preflight handled successfully"}
 
 @app.post("/api/v1/audits", response_model=AuditSchema, status_code=201)
 def create_audit_entry(audit_request: AuditCreate, db: Session = Depends(get_db)):
