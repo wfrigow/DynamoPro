@@ -11,6 +11,7 @@ from typing import List, Optional, Dict, Any
 from app.db.session import get_db
 from app.models.audit_model import Audit as AuditModel
 from pydantic import BaseModel, ConfigDict
+from starlette.responses import Response
 
 app = FastAPI()
 
@@ -44,6 +45,14 @@ async def root():
 async def health_check():
     return {"status": "ok"}
 
+@app.options("/health")
+async def options_health():
+    return Response(status_code=200, headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+    })
+
 @app.post("/api/v1/audits", response_model=AuditSchema, status_code=201)
 def create_audit_entry(audit_request: AuditCreate, db: Session = Depends(get_db)):
     """Crée une nouvelle entrée d'audit dans la base de données."""
@@ -76,6 +85,14 @@ def create_audit_entry(audit_request: AuditCreate, db: Session = Depends(get_db)
         # Log l'erreur et renvoyer une réponse d'erreur
         print(f"Erreur lors de la création de l'audit: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de la création de l'audit: {str(e)}")
+
+@app.options("/api/v1/audits")
+async def options_audits():
+    return Response(status_code=200, headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+    })
 
 @app.get("/api/v1/audits", response_model=List[AuditSchema])
 def get_all_audits(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
