@@ -4,6 +4,7 @@ Version simplifiée de l'API d'audit pour DynamoPro avec stockage en TEXT
 
 import json
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 
@@ -12,6 +13,15 @@ from app.models.audit_model import Audit as AuditModel
 from pydantic import BaseModel, ConfigDict
 
 app = FastAPI()
+
+# Configurer CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Autoriser toutes les origines
+    allow_credentials=True,
+    allow_methods=["*"],  # Autoriser toutes les méthodes
+    allow_headers=["*"],  # Autoriser tous les headers
+)
 
 # Modèles Pydantic simplifiés
 class AuditBase(BaseModel):
