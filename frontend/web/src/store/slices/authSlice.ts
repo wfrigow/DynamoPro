@@ -42,10 +42,43 @@ interface AuthState {
   error: string | null;
 }
 
+// Fonctions sécurisées pour accéder à localStorage
+const getLocalStorageItem = (key: string): string | null => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem(key);
+    }
+    return null;
+  } catch (e) {
+    console.error('Error accessing localStorage:', e);
+    return null;
+  }
+};
+
+const setLocalStorageItem = (key: string, value: string): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(key, value);
+    }
+  } catch (e) {
+    console.error('Error setting localStorage item:', e);
+  }
+};
+
+const removeLocalStorageItem = (key: string): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(key);
+    }
+  } catch (e) {
+    console.error('Error removing localStorage item:', e);
+  }
+};
+
 const initialState: AuthState = {
   user: null,
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  token: getLocalStorageItem('token'),
+  isAuthenticated: !!getLocalStorageItem('token'),
   isLoading: false,
   error: null,
 };
@@ -80,7 +113,7 @@ export const login = createAsyncThunk<
       isSuperuser: false
     };
     
-    localStorage.setItem('token', mockToken);
+    setLocalStorageItem('token', mockToken);
     
     return {
       token: mockToken,
@@ -94,7 +127,7 @@ export const login = createAsyncThunk<
       email: username,
       password
     });
-    localStorage.setItem('token', response.token);
+    setLocalStorageItem('token', response.token);
     return {
       token: response.token,
       user: {
@@ -130,7 +163,7 @@ export const register = createAsyncThunk<
       isSuperuser: false
     };
     
-    localStorage.setItem('token', mockToken);
+    setLocalStorageItem('token', mockToken);
     
     return {
       token: mockToken,
@@ -151,7 +184,7 @@ export const register = createAsyncThunk<
       password: userData.password
     });
     
-    localStorage.setItem('token', loginResponse.token);
+    setLocalStorageItem('token', loginResponse.token);
     
     return {
       token: loginResponse.token,
@@ -176,7 +209,7 @@ export const fetchCurrentUser = createAsyncThunk<
   { rejectValue: string }
 >('auth/fetchCurrentUser', async (_, { rejectWithValue }) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = getLocalStorageItem('token');
     if (!token) {
       return rejectWithValue('Token non trouvé');
     }
@@ -198,14 +231,14 @@ export const fetchCurrentUser = createAsyncThunk<
     return mapUserResponseToUser(userResponse);
     */
   } catch (error: any) {
-    localStorage.removeItem('token');
+    removeLocalStorageItem('token');
     return rejectWithValue('Session expirée ou invalide');
   }
 });
 
 export const logout = createAsyncThunk('auth/logout', async () => {
   // Remove token from localStorage
-  localStorage.removeItem('token');
+  removeLocalStorageItem('token');
   return null;
 });
 
@@ -259,12 +292,22 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.isAuthenticated = true;
       state.user = action.payload;
+      // Le token est déjà dans le state via initialState ou login, pas besoin de le redéfinir ici
+      // sauf si fetchCurrentUser devait aussi rafraîchir un token, ce qui n'est pas le cas actuellement.
     });
     builder.addCase(fetchCurrentUser.rejected, (state, action) => {
       state.isLoading = false;
-      // Si l'erreur est due à une non-authentification, ne pas afficher d'erreur
-      if (action.payload !== 'Not authenticated') {
+      state.isAuthenticated = false;
+      state.user = null;
+      state.token = null; // Le token est invalide ou non trouvé, donc on le vide dans le state.
+                          // localStorage est géré par le thunk fetchCurrentUser ou logout.
+      
+      // Afficher une erreur seulement si ce n'est pas un échec "silencieux" 
+      // (comme un token non trouvé au démarrage de l'app).
+      if (action.payload && action.payload !== 'Token non trouvé') {
         state.error = action.payload as string;
+      } else {
+        state.error = null; // Pas d'erreur visible pour un token non trouvé initialement.
       }
     });
     

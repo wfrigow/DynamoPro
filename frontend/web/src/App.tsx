@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { selectAuth } from './store/slices/authSlice';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectAuth, fetchCurrentUser } from './store/slices/authSlice';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -28,8 +28,15 @@ import NotFound from './pages/NotFound';
 import TestComponent from './components/TestComponent';
 
 const App: React.FC = () => {
-  const { isAuthenticated } = useSelector(selectAuth);
-  
+  const { isAuthenticated, token, user } = useSelector(selectAuth);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(fetchCurrentUser() as any);
+    }
+  }, [dispatch, token, user]);
+
   // Protected route component
   const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (!isAuthenticated) {
