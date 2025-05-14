@@ -8,8 +8,9 @@ const getApiBaseUrl = (): string => {
   if (window.location.hostname !== 'localhost') {
     // Déterminer l'URL backend en fonction du déploiement
     if (window.location.hostname.includes('windsurf.build')) {
-      // Pour les déploiements sur windsurf.build, utiliser
-      return 'https://dynamopro-api.herokuapp.com';
+      // Pour les déploiements sur windsurf.build, utiliser la même origine
+      // Cela évite les problèmes CORS car le backend et le frontend sont hébergés au même endroit
+      return window.location.origin;
     }
     // Autre cas (déploiement Netlify standard)
     return 'https://nom-de-votre-app-dynamopro.herokuapp.com';
@@ -41,6 +42,12 @@ export const API_CONFIG = {
 
 // Pour faciliter le débogage
 console.log(`API configurée pour : ${API_CONFIG.baseUrl}`);
+
+// Exposer l'URL de base de l'API globalement pour faciliter le débogage
+// Cette variable est utilisée par le gestionnaire d'erreurs dans index.tsx
+if (typeof window !== 'undefined') {
+  window.apiBaseUrl = API_CONFIG.baseUrl;
+}
 
 // URL complète du proxy LLM (utilisée par direct-openai.ts)
 export const getLlmProxyUrl = (): string => {
