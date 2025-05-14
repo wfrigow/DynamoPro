@@ -89,6 +89,18 @@ class WorkflowManager:
 # Initialisation du gestionnaire de workflow
 workflow_manager = WorkflowManager()
 
+# Importer le moteur de recommandations
+from subsidy.integrations.recommendation_engine import RecommendationEngine
+
+# Définir la clé API OpenAI - DOIT être configurée via les variables d'environnement
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    print("ERREUR CRITIQUE: La variable d'environnement OPENAI_API_KEY n'est pas définie.")
+    # Selon la criticité, vous pourriez vouloir quitter l'application ici:
+    # sys.exit("Arrêt de l'application car OPENAI_API_KEY est manquante.")
+    # Pour l'instant, nous allons juste imprimer l'erreur et continuer, 
+    # mais RecommendationEngine échouera probablement.
+
 # Routes API
 @app.post("/api/v1/agent-request", response_model=AgentResponse)
 async def process_agent_request(request: AgentRequest):
