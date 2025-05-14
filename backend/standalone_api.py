@@ -9,12 +9,22 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel, ConfigDict
 
 app = FastAPI()
+
+# Configurer CORS - Configuration très permissive pour le débogage
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Permettre toutes les origines
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], # Lister explicitement OPTIONS
+    allow_headers=["*"], # Permettre tous les en-têtes
+)
 
 # Configuration de la base de données
 DATABASE_URL = os.getenv("DATABASE_URL")
