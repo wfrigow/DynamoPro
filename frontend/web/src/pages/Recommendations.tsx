@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Euro, TrendingUp } from '@mui/icons-material';
+import { API_CONFIG } from '../config/api'; // Importer la configuration d'API
 import {
   Box,
   Typography,
@@ -35,7 +37,6 @@ import {
   TrendingUp as ROIIcon,
   FilterList as FilterIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 
 // Interface pour les recommandations
 interface Recommendation {
@@ -107,9 +108,8 @@ const Recommendations: React.FC = () => {
 
   const fetchRecommendationsFromAPI = useCallback(async (simplifiedAudit: SimplifiedAudit, token: string | null) => {
     try {
-      const apiUrl = 'http://localhost:8003';
       console.log("Envoi des données d'audit pour recommandations:", simplifiedAudit.data);
-      const response = await fetch(`${apiUrl}/api/v1/simple-recommendations`, {
+      const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.recommendations.simple}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
