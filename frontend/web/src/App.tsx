@@ -28,7 +28,7 @@ import NotFound from './pages/NotFound';
 import TestComponent from './components/TestComponent';
 
 const App: React.FC = () => {
-  const { isAuthenticated, token, user } = useSelector(selectAuth);
+  const { isAuthenticated, token, user, isLoading } = useSelector(selectAuth);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -39,9 +39,29 @@ const App: React.FC = () => {
 
   // Protected route component
   const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    // Ne pas rendre tant que l'authentification n'est pas vérifiée (chargement initial ou vérification du token)
+    if (isLoading) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          Chargement...
+        </div>
+      );
+    }
+    
+    // Rediriger vers login si pas authentifié
     if (!isAuthenticated) {
       return <Navigate to="/login" replace />;
     }
+    
+    // S'assurer que user est complètement chargé avant de rendre le layout principal
+    if (!user) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          Chargement du profil...
+        </div>
+      );
+    }
+    
     return <>{children}</>;
   };
 
