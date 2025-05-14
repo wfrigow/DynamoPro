@@ -19,8 +19,54 @@ const renderErrorMessage = (error: Error) => {
 };
 
 // Fonction pour initialiser l'application par étapes, avec gestion d'erreurs à chaque étape
+// Gestionnaire d'erreurs pour les ressources 404
+const setupResourceErrorHandler = () => {
+  // Écoute les erreurs de chargement de ressources
+  window.addEventListener('error', (event) => {
+    if (event.target && (event.target as HTMLElement).tagName) {
+      const element = event.target as HTMLElement;
+      const tagName = element.tagName.toLowerCase();
+      
+      // Si l'erreur concerne une image, un script, une feuille de style, etc.
+      if (['img', 'script', 'link', 'audio', 'video'].includes(tagName)) {
+        let url = '';
+        
+        // Récupérer l'URL de la ressource selon le type d'élément
+        if (tagName === 'img' || tagName === 'script' || tagName === 'audio' || tagName === 'video') {
+          url = (element as HTMLImageElement | HTMLScriptElement | HTMLAudioElement | HTMLVideoElement).src || '';
+        } else if (tagName === 'link') {
+          url = (element as HTMLLinkElement).href || '';
+        }
+        
+        console.error(`Erreur de ressource (404): ${url}`);
+        
+        // Enregistrer les détails pour aider au débogage
+        const details = {
+          type: tagName,
+          url,
+          hostname: window.location.hostname,
+          apiBaseUrl: window.apiBaseUrl, // Défini par notre code de configuration API
+          time: new Date().toISOString(),
+          referrer: document.referrer
+        };
+        
+        console.log('Détails de l\'erreur:', details);
+      }
+    }
+  }, true);
+};
+
+// Définir variable globale pour la configuration API
+declare global {
+  interface Window {
+    apiBaseUrl?: string;
+  }
+}
+
 const initializeApp = async () => {
   try {
+    // Configurer le gestionnaire d'erreurs de ressources
+    setupResourceErrorHandler();
     console.log('1. Démarrage de l\'initialisation');
     
     // Étape 1 : Importer le thème (moins susceptible de causer des erreurs)

@@ -6,6 +6,12 @@
 const getApiBaseUrl = (): string => {
   // En production (Netlify), nous utilisons l'URL Heroku
   if (window.location.hostname !== 'localhost') {
+    // Déterminer l'URL backend en fonction du déploiement
+    if (window.location.hostname.includes('windsurf.build')) {
+      // Pour les déploiements sur windsurf.build, utiliser
+      return 'https://dynamopro-api.herokuapp.com';
+    }
+    // Autre cas (déploiement Netlify standard)
     return 'https://nom-de-votre-app-dynamopro.herokuapp.com';
   }
   
@@ -26,9 +32,17 @@ export const API_CONFIG = {
       simple: '/api/v1/simple-recommendations',
       detailed: '/api/v1/detailed-recommendations',
     },
+    llm: {
+      proxy: '/api/llm', // Endpoint pour le proxy OpenAI
+    },
     // Autres endpoints...
   }
 };
 
 // Pour faciliter le débogage
 console.log(`API configurée pour : ${API_CONFIG.baseUrl}`);
+
+// URL complète du proxy LLM (utilisée par direct-openai.ts)
+export const getLlmProxyUrl = (): string => {
+  return `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.llm.proxy}`;
+};
