@@ -15,7 +15,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel, ConfigDict
 
-app = FastAPI()
+# Import du router LLM proxy
+import httpx
+try:
+    from routes.llm_proxy import router as llm_router
+    HAS_LLM_PROXY = True
+except (ImportError, ModuleNotFoundError):
+    print("AVERTISSEMENT: Module LLM proxy non disponible. Les fonctionnalités IA seront limitées.")
+    HAS_LLM_PROXY = False
+
+app = FastAPI(title="DynamoPro API", description="API pour l'application DynamoPro")
 
 # Configurer CORS - Configuration très permissive pour le débogage
 app.add_middleware(
@@ -74,7 +83,14 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok"}
+    # Vérifier si la clé API OpenAI est configurée
+    openai_status = "configured" if os.getenv("OPENAI_API_KEY") else "missing"
+    return {"status": "ok", "openai_api": openai_status}
+
+# Inclure le router LLM s'il est disponible
+if HAS_LLM_PROXY:
+    app.include_router(llm_router)
+    print("LLM proxy router intégré avec succès.")
 
 @app.get("/db-info")
 async def db_info():

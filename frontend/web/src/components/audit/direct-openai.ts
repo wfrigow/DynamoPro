@@ -1,7 +1,10 @@
-// Fonction utilitaire pour appeler l'API OpenAI via le proxy Express sécurisé
+// Import de la configuration d'API centralisée
+import { getLlmProxyUrl } from '../../config/api';
+
+// Fonction utilitaire pour appeler l'API OpenAI via le proxy API sécurisé
 export async function callOpenAI(inputText: string, conversationHistory: any[]) {
-  // URL du proxy Express sécurisé - utilise une variable d'environnement ou une URL par défaut
-  const proxyUrl = process.env.REACT_APP_LLM_API_URL || '/api/llm';
+  // URL du proxy LLM depuis la configuration centralisée
+  const proxyUrl = getLlmProxyUrl();
   
   // Prompt système universel
   const systemPrompt = `Tu es l'Assistant d'Audit Énergétique DynamoPro. 
