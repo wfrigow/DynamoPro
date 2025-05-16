@@ -100,11 +100,30 @@ def get_or_create_demo_audit(db: Session, user_id: str) -> AuditSchema:
     
     return demo_audit
 
-# Endpoint pour obtenir les audits d'un utilisateur spécifique
+# Endpoint principal pour obtenir les audits d'un utilisateur spécifique (API v1)
+@router.get("/api/v1/audits", response_model=List[AuditSummary])
+async def get_user_audits_v1(
+    user_id: str = Query(..., description="ID de l'utilisateur"),
+    db: Session = Depends(get_db)
+):
+    """Endpoint API v1 pour récupérer la liste des audits d'un utilisateur"""
+    return await _get_user_audits_impl(user_id, db)
+
+
+# Version sans préfixe v1 pour compatibilité avec le frontend
 @router.get("/api/audits", response_model=List[AuditSummary])
 async def get_user_audits(
     user_id: str = Query(..., description="ID de l'utilisateur"),
     db: Session = Depends(get_db)
+):
+    """Version sans préfixe v1 pour la compatibilité avec le frontend"""
+    return await _get_user_audits_impl(user_id, db)
+
+
+# Implémentation commune pour éviter la duplication de code
+async def _get_user_audits_impl(
+    user_id: str,
+    db: Session
 ):
     """Récupère la liste des audits pour un utilisateur spécifique"""
     try:
@@ -160,9 +179,25 @@ async def get_user_audits(
             detail=f"Erreur lors de la récupération des audits: {str(e)}"
         )
 
-# Endpoint pour obtenir un audit spécifique par son ID
+# Endpoint principal pour obtenir un audit spécifique par son ID (API v1)
+@router.get("/api/v1/audits/{audit_id}", response_model=FullAuditResponse)
+async def get_audit_by_id_v1(audit_id: str, db: Session = Depends(get_db)):
+    """Endpoint API v1 pour récupérer les détails d'un audit spécifique"""
+    return await _get_audit_by_id_impl(audit_id, db)
+
+
+# Version sans préfixe v1 pour compatibilité avec le frontend
 @router.get("/api/audits/{audit_id}", response_model=FullAuditResponse)
 async def get_audit_by_id(audit_id: str, db: Session = Depends(get_db)):
+    """Version sans préfixe v1 pour la compatibilité avec le frontend"""
+    return await _get_audit_by_id_impl(audit_id, db)
+
+
+# Implémentation commune pour éviter la duplication de code
+async def _get_audit_by_id_impl(
+    audit_id: str,
+    db: Session
+):
     """Récupère les détails complets d'un audit spécifique"""
     try:
         # Convertir l'ID en entier si possible

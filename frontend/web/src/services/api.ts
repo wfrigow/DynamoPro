@@ -1,10 +1,13 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { store } from '../store';
 import { logout } from '../store/slices/authSlice';
-import { API_CONFIG, AUTH_CONFIG } from '../config';
+import { API_CONFIG } from '../config/api';
 
 // Configuration de base
-const API_URL = API_CONFIG.BASE_URL;
+const API_URL = API_CONFIG.baseUrl;
+
+// Log pour le débogage
+console.log(`Service API utilisant l'URL de base: ${API_URL}`);
 
 // Création d'une instance axios avec une configuration de base
 const api = axios.create({

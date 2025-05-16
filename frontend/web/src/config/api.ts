@@ -12,9 +12,8 @@ const getApiBaseUrl = (): string => {
       // Cela évite les problèmes CORS car le backend et le frontend sont hébergés au même endroit
       return window.location.origin;
     }
-    // Autre cas (déploiement Netlify standard)
-    return 'https://dynamopro-app-b0d7b735d20c.herokuapp.com';
-    // Si l'URL ci-dessus ne fonctionne pas, remplacez-la par l'URL correcte de votre application Heroku
+    // URL du backend Heroku
+    return 'https://nom-de-votre-app-dynamopro.herokuapp.com';
   }
   
   // En développement local, nous utilisons localhost

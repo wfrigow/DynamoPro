@@ -113,10 +113,15 @@ const mockAuditData: UserAuditData = {
   }
 };
 
-// Configuration des endpoints d'audit
+// Configuration des endpoints d'audit (double configuration pour assurer la compatibilité avec le backend)
 const AUDIT_ENDPOINTS = {
+  // Endpoints principaux pour correspondre exactement à ce que le backend expose maintenant
   getUserAudits: (userId: string) => `/api/audits?user_id=${userId}`,
-  getAuditById: (auditId: string) => `/api/audits/${auditId}`
+  getAuditById: (auditId: string) => `/api/audits/${auditId}`,
+  
+  // Endpoints alternatifs au cas où les premiers échouent
+  getUserAuditsV1: (userId: string) => `/api/v1/audits?user_id=${userId}`,
+  getAuditByIdV1: (auditId: string) => `/api/v1/audits/${auditId}`
 };
 
 // Variable pour suivre le nombre de tentatives d'appel API
@@ -150,9 +155,35 @@ export const fetchUserAudits = createAsyncThunk<
     // Incrémenter le compteur de tentatives
     apiCallAttempts++;
 
-    // 1. Fetch audit summaries for the user
-    console.log(`Fetching audits from ${API_CONFIG.baseUrl}${AUDIT_ENDPOINTS.getUserAudits(userId)}`);
-    const summaries: AuditSummary[] = await apiService.get(AUDIT_ENDPOINTS.getUserAudits(userId));
+    // Fonction helper pour récupérer les données d'audit avec résilience
+    const fetchWithResilience = async <T>(
+      mainEndpoint: string,
+      fallbackEndpoint: string,
+      errorMessage: string
+    ): Promise<T> => {
+      try {
+        // Essayer d'abord avec l'endpoint principal
+        console.log(`Tentative 1: ${API_CONFIG.baseUrl}${mainEndpoint}`);
+        return await apiService.get<T>(mainEndpoint);
+      } catch (mainError) {
+        console.warn(`Échec sur ${mainEndpoint}, tentative alternative: ${fallbackEndpoint}`);
+        try {
+          // En cas d'échec, essayer avec l'endpoint alternatif (v1)
+          console.log(`Tentative 2: ${API_CONFIG.baseUrl}${fallbackEndpoint}`);
+          return await apiService.get<T>(fallbackEndpoint);
+        } catch (fallbackError) {
+          console.error(`Toutes les tentatives ont échoué pour ${errorMessage}`);
+          throw new Error(`Échec de récupération: ${errorMessage}`);
+        }
+      }
+    };
+
+    // 1. Récupérer les résumés d'audit avec résilience
+    const summaries: AuditSummary[] = await fetchWithResilience<AuditSummary[]>(
+      AUDIT_ENDPOINTS.getUserAudits(userId),
+      AUDIT_ENDPOINTS.getUserAuditsV1(userId),
+      "liste des audits"
+    );
     
     if (summaries.length === 0) {
       // No audits found for the user, use mock data if available or return a rejection
@@ -164,9 +195,12 @@ export const fetchUserAudits = createAsyncThunk<
     summaries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     const latestAuditSummary = summaries[0];
 
-    // 3. Fetch the full details of the most recent audit
-    console.log(`Fetching audit details from ${API_CONFIG.baseUrl}${AUDIT_ENDPOINTS.getAuditById(latestAuditSummary.id)}`);
-    const fullAudit: FullAuditResponse = await apiService.get(AUDIT_ENDPOINTS.getAuditById(latestAuditSummary.id));
+    // 3. Fetch the full details of the most recent audit with resilience
+    const fullAudit: FullAuditResponse = await fetchWithResilience<FullAuditResponse>(
+      AUDIT_ENDPOINTS.getAuditById(latestAuditSummary.id),
+      AUDIT_ENDPOINTS.getAuditByIdV1(latestAuditSummary.id),
+      "détails de l'audit"
+    );
     
     // Réinitialiser le compteur car l'appel a réussi
     apiCallAttempts = 0;

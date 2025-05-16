@@ -59,18 +59,33 @@ app.add_middleware(
     expose_headers=["Content-Type", "Authorization"],
 )
 
-# Middleware pour rediriger les routes sans préfixe /api
+# Middleware pour rediriger les routes et assurer la compatibilité API
 @app.middleware("http")
-async def add_api_prefix(request: Request, call_next):
+async def route_compatibility_middleware(request: Request, call_next):
     path = request.url.path
+    original_path = path
+    redirect_needed = False
     
-    # Rediriger les endpoints d'audit sans préfixe /api vers leurs équivalents avec préfixe
-    if path.startswith("/audits"):
-        # Construire la nouvelle URL avec le préfixe /api
-        new_path = f"/api{path}"
-        url = str(request.url).replace(path, new_path)
+    # 1. Rediriger /audits vers /api/audits
+    if path.startswith("/audits") and not path.startswith("/api/"):
+        path = f"/api{path}"
+        redirect_needed = True
+    
+    # 2. Rediriger /api/audits vers /api/v1/audits si nécessaire
+    # Exceptions : ne pas rediriger si c'est déjà un chemin v1 ou si c'est un endpoint spécifique
+    if path.startswith("/api/audits") and not path.startswith("/api/v1/"):
+        path = path.replace("/api/audits", "/api/v1/audits")
+        redirect_needed = True
+        
+    # Si une redirection est nécessaire, renvoyer la réponse appropriée
+    if redirect_needed:
+        url = str(request.url).replace(original_path, path)
+        print(f"Redirection: {original_path} -> {path}")
         return RedirectResponse(url=url)
         
+    # Journaliser tous les chemins d'accès pour le débogage
+    print(f"Accès à: {path}")
+    
     # Continuer normalement pour les autres chemins    
     response = await call_next(request)
     return response
