@@ -66,10 +66,19 @@ async def route_compatibility_middleware(request: Request, call_next):
     original_path = path
     redirect_needed = False
     
-    # 1. Rediriger /audits vers /api/audits
-    if path.startswith("/audits") and not path.startswith("/api/"):
-        path = f"/api{path}"
-        redirect_needed = True
+    # 1. Rediriger les chemins sans préfixe /api vers leurs équivalents avec préfixe
+    # Cas spécifiques à traiter
+    path_mappings = {
+        "/audits": "/api/audits",  # Rediriger /audits vers /api/audits
+        "/llm": "/api/llm"        # Rediriger /llm vers /api/llm
+    }
+    
+    # Vérifier si le chemin commence par l'un des préfixes à rediriger
+    for prefix, target in path_mappings.items():
+        if path.startswith(prefix) and not path.startswith("/api/"):
+            path = path.replace(prefix, target)
+            redirect_needed = True
+            break
     
     # 2. Rediriger /api/audits vers /api/v1/audits si nécessaire
     # Exceptions : ne pas rediriger si c'est déjà un chemin v1 ou si c'est un endpoint spécifique
