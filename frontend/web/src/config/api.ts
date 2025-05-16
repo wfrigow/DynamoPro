@@ -13,7 +13,8 @@ const getApiBaseUrl = (): string => {
       return window.location.origin;
     }
     // Autre cas (déploiement Netlify standard)
-    return 'https://nom-de-votre-app-dynamopro.herokuapp.com';
+    return 'https://dynamopro-app-b0d7b735d20c.herokuapp.com';
+    // Si l'URL ci-dessus ne fonctionne pas, remplacez-la par l'URL correcte de votre application Heroku
   }
   
   // En développement local, nous utilisons localhost

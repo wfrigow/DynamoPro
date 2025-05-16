@@ -8,15 +8,18 @@ import json
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel, ConfigDict
 
-# Import du router LLM proxy
+# Import des routers externes
 import httpx
+
+# Router LLM proxy
 try:
     from routes.llm_proxy import router as llm_router
     HAS_LLM_PROXY = True
@@ -24,16 +27,53 @@ except (ImportError, ModuleNotFoundError):
     print("AVERTISSEMENT: Module LLM proxy non disponible. Les fonctionnalités IA seront limitées.")
     HAS_LLM_PROXY = False
 
+# Router Audit API
+try:
+    from routes.audit_api import router as audit_router
+    HAS_AUDIT_API = True
+except (ImportError, ModuleNotFoundError):
+    print("AVERTISSEMENT: Module Audit API non disponible. Les fonctionnalités d'audit seront limitées.")
+    HAS_AUDIT_API = False
+
 app = FastAPI(title="DynamoPro API", description="API pour l'application DynamoPro")
 
 # Configurer CORS - Configuration très permissive pour le débogage
+# Liste des origines permises
+allowed_origins = [
+    "http://localhost:3000",
+    "https://localhost:3000",
+    "http://localhost:8003",
+    "https://dynamopro-app.windsurf.build",
+    "https://dynamopro-app-b0d7b735d20c.netlify.app",  # Si vous utilisez Netlify
+    # Ajouter d'autres origines au besoin
+]
+
+# Configuration CORS avec des origines spécifiques
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permettre toutes les origines
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], # Lister explicitement OPTIONS
-    allow_headers=["*"], # Permettre tous les en-têtes
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    # Important: Exposer ces en-têtes pour les requêtes cross-origin
+    expose_headers=["Content-Type", "Authorization"],
 )
+
+# Middleware pour rediriger les routes sans préfixe /api
+@app.middleware("http")
+async def add_api_prefix(request: Request, call_next):
+    path = request.url.path
+    
+    # Rediriger les endpoints d'audit sans préfixe /api vers leurs équivalents avec préfixe
+    if path.startswith("/audits"):
+        # Construire la nouvelle URL avec le préfixe /api
+        new_path = f"/api{path}"
+        url = str(request.url).replace(path, new_path)
+        return RedirectResponse(url=url)
+        
+    # Continuer normalement pour les autres chemins    
+    response = await call_next(request)
+    return response
 
 # Configuration de la base de données
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -79,7 +119,15 @@ class AuditSchema(AuditBase):
 
 @app.get("/")
 async def root():
-    return {"message": "Standalone Audit API"}
+    return {
+        "message": "DynamoPro API",
+        "version": "1.0.0",
+        "features": {
+            "llm_proxy": HAS_LLM_PROXY,
+            "audit_api": HAS_AUDIT_API
+        },
+        "docs_url": "/docs"
+    }
 
 @app.get("/health")
 async def health_check():
@@ -87,10 +135,14 @@ async def health_check():
     openai_status = "configured" if os.getenv("OPENAI_API_KEY") else "missing"
     return {"status": "ok", "openai_api": openai_status}
 
-# Inclure le router LLM s'il est disponible
+# Inclure les routers disponibles
 if HAS_LLM_PROXY:
     app.include_router(llm_router)
     print("LLM proxy router intégré avec succès.")
+
+if HAS_AUDIT_API:
+    app.include_router(audit_router)
+    print("Audit API router intégré avec succès.")
 
 @app.get("/db-info")
 async def db_info():
