@@ -4,16 +4,12 @@
 
 // Détermine l'URL de base de l'API en fonction de l'environnement
 const getApiBaseUrl = (): string => {
-  // En production (Netlify), nous utilisons l'URL Heroku
+  // En production (que ce soit sur Netlify, windsurf.build ou ailleurs), nous utilisons toujours l'URL Heroku
   if (window.location.hostname !== 'localhost') {
-    // Déterminer l'URL backend en fonction du déploiement
-    if (window.location.hostname.includes('windsurf.build')) {
-      // Pour les déploiements sur windsurf.build, utiliser la même origine
-      // Cela évite les problèmes CORS car le backend et le frontend sont hébergés au même endroit
-      return window.location.origin;
-    }
-    // URL du backend Heroku
-    return 'https://nom-de-votre-app-dynamopro.herokuapp.com';
+    // IMPORTANT : Ne jamais utiliser l'origine actuelle comme URL API pour windsurf.build
+    // car le backend est hébergé sur Heroku, pas sur windsurf.build
+    console.log('Utilisation de l\'URL Heroku pour les appels API');
+    return 'https://nom-de-votre-app-dynamopro-b0d7b735d20c.herokuapp.com';
   }
   
   // En développement local, nous utilisons localhost
